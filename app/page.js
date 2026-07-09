@@ -64,7 +64,7 @@ export default function HomePage() {
 
           {error ? <p className="error-text">{error}</p> : null}
           <button className="primary-button" type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "AUTHENTICATING..." : "ADMIN LOGIN"}
+            {isSubmitting ? "AUTHENTICATING..." : "LOGIN"}
           </button>
         </form>
       </section>
