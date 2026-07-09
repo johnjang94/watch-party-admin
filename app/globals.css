@@ -792,10 +792,40 @@ img {
 
   .auth-card {
     min-height: 100dvh;
+    grid-template-rows: 58dvh auto;
+  }
+
+  .hero-media {
+    position: relative;
+    inset: auto;
+    min-height: 58dvh;
+    background:
+      linear-gradient(180deg, rgba(1, 7, 5, 0.18), rgba(1, 7, 5, 0.34)),
+      url("/image.jpg") center top / cover no-repeat;
   }
 
   .auth-panel {
-    padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
+    margin: 0;
+    padding: 18px 16px calc(22px + env(safe-area-inset-bottom));
+    gap: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: none;
+    border-radius: 0;
+    background:
+      linear-gradient(180deg, rgba(3, 8, 6, 0.08), rgba(3, 8, 6, 0.66) 30%, rgba(3, 8, 6, 0.96)),
+      rgba(7, 16, 12, 0.78);
+  }
+
+  .field-input {
+    min-height: 84px;
+    padding: 22px 24px;
+    border-radius: 28px;
+    font-size: 1.1rem;
+  }
+
+  .primary-button {
+    min-height: 82px;
+    font-size: 1.1rem;
   }
 
   .dashboard-shell {
