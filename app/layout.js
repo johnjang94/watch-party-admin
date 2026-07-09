@@ -1,8 +1,8 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "FIFA Admin",
-  description: "Admin dashboard for invite requests.",
+  title: "Watch Party Admin",
+  description: "Mobile-first admin console for signups and inquiries.",
 };
 
 export default function RootLayout({ children }) {

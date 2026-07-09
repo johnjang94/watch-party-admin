@@ -4,8 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import heroImage from "../image.png";
-
-const apiBaseUrl = process.env.NEXT_PUBLIC_CONTROL_URL ?? "http://127.0.0.1:3010";
+import { authenticateAdmin } from "../lib/admin-api";
 
 export default function HomePage() {
   const router = useRouter();
@@ -20,21 +19,17 @@ export default function HomePage() {
     setError("");
 
     try {
-      const response = await fetch(`${apiBaseUrl}/api/admin/auth`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          firstName: firstName.trim(),
-          phoneNumber: phoneNumber.trim(),
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok || !data.ok) {
-        throw new Error(data.error ?? "Authentication failed.");
+      if (!firstName.trim() || !phoneNumber.trim()) {
+        throw new Error("Please enter your name and phone number.");
       }
 
-      localStorage.setItem("watch-party-admin-session", JSON.stringify(data.session));
-      router.push("/dashboard");
+      const session = await authenticateAdmin({
+        firstName: firstName.trim(),
+        phoneNumber: phoneNumber.trim(),
+      });
+
+      localStorage.setItem("watch-party-admin-session", JSON.stringify(session));
+      router.replace("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Authentication failed.");
     } finally {
@@ -43,33 +38,47 @@ export default function HomePage() {
   }
 
   return (
-    <main className="page-root home-page">
-      <section className="home-hero">
-        <div className="hero-media">
-          <Image alt="" className="hero-image" fill priority sizes="100vw" src={heroImage} />
-          <div className="hero-overlay" aria-hidden="true" />
+    <main className="page-root auth-page">
+      <section className="screen-shell auth-shell">
+        <div className="auth-card">
+          <div className="hero-media">
+            <Image alt="" className="hero-image" fill priority sizes="100vw" src={heroImage} />
+            <div className="hero-overlay" aria-hidden="true" />
+          </div>
+
+          <form className="auth-panel" onSubmit={handleSubmit}>
+            <div className="auth-title-block">
+              <p className="eyebrow">watch party admin</p>
+              <h1 className="screen-title">Admin login</h1>
+            </div>
+
+            <label className="field">
+              <span>Name</span>
+              <input
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="Your name"
+                autoComplete="given-name"
+              />
+            </label>
+
+            <label className="field">
+              <span>Phone number</span>
+              <input
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                placeholder="Your phone number"
+                autoComplete="tel"
+                inputMode="tel"
+              />
+            </label>
+
+            {error ? <p className="error-text">{error}</p> : null}
+            <button className="primary-button" type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Authenticating..." : "Admin login"}
+            </button>
+          </form>
         </div>
-
-        <form className="home-panel" onSubmit={handleSubmit}>
-          <p className="eyebrow">control room</p>
-          <h1 className="home-title">Watch Party Admin</h1>
-          <p className="home-copy">Enter your name and phone number to unlock the dashboard.</p>
-
-          <label className="field">
-            <span>Name</span>
-            <input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Your name" autoComplete="given-name" />
-          </label>
-
-          <label className="field">
-            <span>Phone Number</span>
-            <input value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} placeholder="Your phone number" autoComplete="tel" inputMode="tel" />
-          </label>
-
-          {error ? <p className="error-text">{error}</p> : null}
-          <button className="primary-button" type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Authenticating..." : "Admin Login"}
-          </button>
-        </form>
       </section>
     </main>
   );
