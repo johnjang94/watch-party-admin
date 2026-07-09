@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 
 function formatValue(value) {
@@ -15,7 +14,15 @@ function formatValue(value) {
 }
 
 function resolveAvatar(user) {
-  return user.avatar ?? user.profilePhotoUrl ?? null;
+  if (typeof user.avatar === "string") {
+    return user.avatar;
+  }
+
+  if (typeof user.avatar?.src === "string") {
+    return user.avatar.src;
+  }
+
+  return user.profilePhotoUrl ?? null;
 }
 
 function initialsFor(user) {
@@ -23,64 +30,76 @@ function initialsFor(user) {
 }
 
 export function UserListPage({ title, subtitle, users }) {
+  const hasUsers = users.length > 0;
+
   return (
-    <main className="page-root detail-page">
-      <section className="screen-shell list-shell">
-        <header className="screen-topbar">
-          <Link className="back-link" href="/dashboard">
-            dashboard
+    <main className="page-root detail-page roster-page">
+      <section className="screen-shell list-shell roster-shell">
+        <header className="screen-topbar roster-topbar">
+          <Link className="back-link roster-back" href="/dashboard">
+            back
           </Link>
-          <div className="screen-heading">
+          <div className="screen-heading roster-heading">
             <p className="eyebrow">{title}</p>
             <h1 className="screen-title">{subtitle}</h1>
           </div>
         </header>
 
-        <div className="user-list">
-          {users.map((user) => (
-            <article className="user-card" key={user.id}>
-              <div className="user-avatar-frame">
-                {resolveAvatar(user) ? (
-                  <Image
-                    alt={`${user.firstName} ${user.lastName}`}
-                    className="user-avatar"
-                    src={resolveAvatar(user)}
-                    width={96}
-                    height={96}
-                  />
-                ) : (
-                  <div className="user-avatar-fallback" aria-hidden="true">
-                    {initialsFor(user)}
-                  </div>
-                )}
-              </div>
+        <div className="roster-summary">
+          <span>{users.length} guests</span>
+          <span>{title === "new" ? "last 24 hours" : "all time"}</span>
+        </div>
 
-              <div className="user-body">
-                <div className="user-title-row">
-                  <strong className="user-name">
-                    {user.firstName} {user.lastName}
-                  </strong>
-                  <span className="status-chip">{user.attendance || "attendance"}</span>
+        {hasUsers ? (
+          <div className="user-list roster-grid">
+            {users.map((user) => (
+              <article className="user-card roster-card" key={user.id}>
+                <div className="user-avatar-frame roster-avatar-frame">
+                  {resolveAvatar(user) ? (
+                    <img
+                      alt={`${user.firstName} ${user.lastName}`}
+                      className="user-avatar"
+                      src={resolveAvatar(user)}
+                    />
+                  ) : (
+                    <div className="user-avatar-fallback" aria-hidden="true">
+                      {initialsFor(user)}
+                    </div>
+                  )}
                 </div>
 
-                <dl className="user-meta">
-                  <div>
-                    <dt>Phone</dt>
-                    <dd>{user.phoneNumber}</dd>
+                <div className="user-body roster-body">
+                  <div className="user-title-row roster-title-row">
+                    <strong className="user-name roster-name">
+                      {user.firstName} {user.lastName}
+                    </strong>
+                    <span className="status-chip roster-chip">{user.attendance || "guest"}</span>
                   </div>
-                  <div>
-                    <dt>Device tracked</dt>
-                    <dd>{formatValue(user.enteredAt ?? user.deviceTrackedAt)}</dd>
-                  </div>
-                  <div>
-                    <dt>Registered</dt>
-                    <dd>{formatValue(user.registeredAt ?? user.createdAt)}</dd>
-                  </div>
-                </dl>
-              </div>
-            </article>
-          ))}
-        </div>
+
+                  <dl className="user-meta roster-meta">
+                    <div>
+                      <dt>Phone</dt>
+                      <dd>{user.phoneNumber}</dd>
+                    </div>
+                    <div>
+                      <dt>Registered</dt>
+                      <dd>{formatValue(user.registeredAt ?? user.createdAt)}</dd>
+                    </div>
+                    <div>
+                      <dt>Check-in</dt>
+                      <dd>{formatValue(user.enteredAt ?? user.deviceTrackedAt)}</dd>
+                    </div>
+                  </dl>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="roster-empty">
+            <strong>No guests yet.</strong>
+            <p>The list will populate as soon as the backend returns registrations.</p>
+          </div>
+        )}
       </section>
     </main>
   );

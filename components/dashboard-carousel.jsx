@@ -71,7 +71,34 @@ function GroupProfileArt() {
   );
 }
 
+function ScanArt() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 160 160" className="dashboard-art">
+      <defs>
+        <radialGradient id="scanGlow" cx="50%" cy="38%" r="62%">
+          <stop offset="0%" stopColor="#f6d15d" stopOpacity="0.92" />
+          <stop offset="52%" stopColor="#9d6cff" stopOpacity="0.42" />
+          <stop offset="100%" stopColor="#0a0d11" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      <rect width="160" height="160" rx="28" fill="#090814" />
+      <circle cx="80" cy="78" r="52" fill="url(#scanGlow)" opacity="0.28" />
+      <rect x="38" y="38" width="84" height="84" rx="18" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="2" />
+      <rect x="50" y="50" width="18" height="18" rx="5" fill="#f4fff8" opacity="0.95" />
+      <rect x="92" y="50" width="18" height="18" rx="5" fill="#f4fff8" opacity="0.95" />
+      <rect x="50" y="92" width="18" height="18" rx="5" fill="#f4fff8" opacity="0.95" />
+      <path d="M92 92h18v18H92z" fill="#f4fff8" opacity="0.95" />
+      <path d="M76 32h8v96h-8z" fill="rgba(246,209,93,0.38)" />
+      <path d="M32 76h96v8H32z" fill="rgba(126,77,214,0.32)" />
+      <circle cx="80" cy="80" r="14" fill="none" stroke="rgba(246,209,93,0.8)" strokeWidth="3" />
+      <path d="M60 124h40" stroke="rgba(255,255,255,0.22)" strokeLinecap="round" strokeWidth="3" />
+      <path d="M30 26h100c2.8 0 5 2.2 5 5v98c0 2.8-2.2 5-5 5H30c-2.8 0-5-2.2-5-5V31c0-2.8 2.2-5 5-5Z" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="2" />
+    </svg>
+  );
+}
+
 function FrameArt({ variant }) {
+  if (variant === "scan") return <ScanArt />;
   if (variant === "group") return <GroupProfileArt />;
   return <SingleProfileArt />;
 }
@@ -80,26 +107,30 @@ const defaultCards = [
   {
     href: "/new",
     title: "new",
-    subtitle: "recent signups",
+    subtitle: "last 24 hours",
+    badge: "A01",
     variant: "single",
   },
   {
     href: "/all",
     title: "all",
-    subtitle: "everyone in one stream",
+    subtitle: "all guests",
+    badge: "A02",
     variant: "group",
+  },
+  {
+    href: "/scan",
+    title: "scan",
+    subtitle: "qr attendance",
+    badge: "A03",
+    variant: "scan",
   },
   {
     href: "/profile",
     title: "profile",
-    subtitle: "your admin identity",
+    subtitle: "your access",
+    badge: "A04",
     variant: "single",
-  },
-  {
-    href: "/inquiry",
-    title: "inquiry",
-    subtitle: "customer questions",
-    variant: "group",
   },
 ];
 
@@ -162,6 +193,7 @@ export function DashboardCarousel({ cards = defaultCards }) {
               }}
             >
               <div className="dashboard-media">
+                <span className="dashboard-badge">{card.badge}</span>
                 <FrameArt variant={card.variant} />
               </div>
               <div className="dashboard-caption">

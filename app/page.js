@@ -27,6 +27,7 @@ export default function HomePage() {
       });
 
       localStorage.setItem("watch-party-admin-session", JSON.stringify(session));
+      localStorage.setItem("watch-party-admin-last-active-at", String(Date.now()));
       router.replace("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Authentication failed.");

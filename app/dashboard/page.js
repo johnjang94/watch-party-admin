@@ -6,11 +6,8 @@ export default function DashboardPage() {
       <section className="dashboard-shell">
         <header className="dashboard-hero">
           <p className="eyebrow">watch party admin</p>
-          <h1 className="dashboard-title-main">choose a room</h1>
-          <p className="dashboard-lede">
-            Swipe through the live sections. Each card opens the same polished
-            flow, just tuned for a different kind of guest list.
-          </p>
+          <h1 className="dashboard-title-main">vault</h1>
+          <p className="dashboard-lede">guest ledger</p>
         </header>
 
         <DashboardCarousel />

@@ -52,6 +52,7 @@ export default function ProfilePage() {
 
   function handleLogout() {
     window.localStorage.removeItem("watch-party-admin-session");
+    window.localStorage.removeItem("watch-party-admin-last-active-at");
     router.replace("/");
   }
 
