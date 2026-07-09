@@ -47,35 +47,28 @@ export default function HomePage() {
           </div>
 
           <form className="auth-panel" onSubmit={handleSubmit}>
-            <div className="auth-title-block">
-              <p className="eyebrow">watch party admin</p>
-              <h1 className="screen-title">Admin login</h1>
-            </div>
+            <input
+              aria-label="Full name"
+              className="field-input"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              placeholder="Your full name"
+              autoComplete="given-name"
+            />
 
-            <label className="field">
-              <span>Name</span>
-              <input
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                placeholder="Your name"
-                autoComplete="given-name"
-              />
-            </label>
-
-            <label className="field">
-              <span>Phone number</span>
-              <input
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="Your phone number"
-                autoComplete="tel"
-                inputMode="tel"
-              />
-            </label>
+            <input
+              aria-label="Phone number"
+              className="field-input"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              placeholder="Your phone number"
+              autoComplete="tel"
+              inputMode="tel"
+            />
 
             {error ? <p className="error-text">{error}</p> : null}
             <button className="primary-button" type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Authenticating..." : "Admin login"}
+              {isSubmitting ? "AUTHENTICATING..." : "ADMIN LOGIN"}
             </button>
           </form>
         </div>
