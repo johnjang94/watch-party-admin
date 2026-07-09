@@ -1,9 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import heroImage from "../image.png";
 import { authenticateAdmin } from "../lib/admin-api";
 
 export default function HomePage() {
@@ -39,39 +37,36 @@ export default function HomePage() {
 
   return (
     <main className="page-root auth-page">
-      <section className="screen-shell auth-shell">
-        <div className="auth-card">
-          <div className="hero-media">
-            <Image alt="" className="hero-image" fill priority sizes="100vw" src={heroImage} />
-            <div className="hero-overlay" aria-hidden="true" />
-          </div>
-
-          <form className="auth-panel" onSubmit={handleSubmit}>
-            <input
-              aria-label="Full name"
-              className="field-input"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              placeholder="Your full name"
-              autoComplete="given-name"
-            />
-
-            <input
-              aria-label="Phone number"
-              className="field-input"
-              value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
-              placeholder="Your phone number"
-              autoComplete="tel"
-              inputMode="tel"
-            />
-
-            {error ? <p className="error-text">{error}</p> : null}
-            <button className="primary-button" type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "AUTHENTICATING..." : "ADMIN LOGIN"}
-            </button>
-          </form>
+      <section className="auth-card">
+        <div className="hero-media" aria-hidden="true">
+          <div className="hero-overlay" />
         </div>
+
+        <form className="auth-panel" onSubmit={handleSubmit}>
+          <input
+            aria-label="Full name"
+            className="field-input"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            placeholder="Your full name"
+            autoComplete="given-name"
+          />
+
+          <input
+            aria-label="Phone number"
+            className="field-input"
+            value={phoneNumber}
+            onChange={(e) => setPhoneNumber(e.target.value)}
+            placeholder="Your phone number"
+            autoComplete="tel"
+            inputMode="tel"
+          />
+
+          {error ? <p className="error-text">{error}</p> : null}
+          <button className="primary-button" type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "AUTHENTICATING..." : "ADMIN LOGIN"}
+          </button>
+        </form>
       </section>
     </main>
   );
