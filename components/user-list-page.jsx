@@ -16,16 +16,37 @@ function formatValue(value) {
   }).format(date);
 }
 
+function normalizeAvatarSource(raw) {
+  if (!raw) return null;
+
+  const value =
+    typeof raw === "string"
+      ? raw.trim()
+      : typeof raw?.src === "string"
+        ? raw.src.trim()
+        : null;
+
+  if (!value) return null;
+
+  if (
+    value.startsWith("http://") ||
+    value.startsWith("https://") ||
+    value.startsWith("data:") ||
+    value.startsWith("blob:") ||
+    value.startsWith("/")
+  ) {
+    return value;
+  }
+
+  return null;
+}
+
 function resolveAvatar(user) {
-  if (typeof user.avatar === "string") {
-    return user.avatar;
-  }
-
-  if (typeof user.avatar?.src === "string") {
-    return user.avatar.src;
-  }
-
-  return user.profilePhotoUrl ?? null;
+  return (
+    normalizeAvatarSource(user.avatarUrl) ??
+    normalizeAvatarSource(user.profilePhotoUrl) ??
+    normalizeAvatarSource(user.avatar)
+  );
 }
 
 function initialsFor(user) {
@@ -205,8 +226,8 @@ function NewDetailCard({ user }) {
 
 function NewListView({ title, users }) {
   const hasUsers = users.length > 0;
-  const [selectedId, setSelectedId] = useState(() => users[0]?.id ?? "");
-  const selectedUser = users.find((user) => user.id === selectedId) ?? users[0] ?? null;
+  const [selectedId, setSelectedId] = useState("");
+  const selectedUser = users.find((user) => user.id === selectedId) ?? null;
   const selectedUserId = selectedUser?.id ?? "";
 
   return (
@@ -232,7 +253,9 @@ function NewListView({ title, users }) {
                       className={`new-list-item ${isActive ? "is-active" : ""}`}
                       key={user.id}
                       type="button"
-                      onClick={() => setSelectedId(user.id)}
+                      onClick={() =>
+                        setSelectedId((current) => (current === user.id ? "" : user.id))
+                      }
                     >
                       <div className="new-list-avatar">
                         <UserAvatar
@@ -258,7 +281,7 @@ function NewListView({ title, users }) {
               </div>
             </section>
 
-            {selectedUser ? <NewDetailCard user={selectedUser} /> : null}
+            {selectedUserId ? <NewDetailCard user={selectedUser} /> : null}
           </div>
         ) : (
           <div className="roster-empty new-empty">
