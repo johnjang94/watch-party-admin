@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useId, useRef, useState } from "react";
+import { useId } from "react";
 
 function SingleProfileArt() {
   const glowId = useId();
@@ -106,99 +106,39 @@ function FrameArt({ variant }) {
 const defaultCards = [
   {
     href: "/new",
-    title: "new",
-    subtitle: "last 24 hours",
-    badge: "A01",
     variant: "single",
+    label: "New guests",
   },
   {
     href: "/all",
-    title: "all",
-    subtitle: "all guests",
-    badge: "A02",
     variant: "group",
+    label: "All guests",
   },
   {
     href: "/scan",
-    title: "scan",
-    subtitle: "qr attendance",
-    badge: "A03",
     variant: "scan",
+    label: "Scan QR",
   },
   {
     href: "/profile",
-    title: "profile",
-    subtitle: "your access",
-    badge: "A04",
     variant: "single",
+    label: "Profile",
   },
 ];
 
 export function DashboardCarousel({ cards = defaultCards }) {
-  const trackRef = useRef(null);
-  const cardRefs = useRef([]);
-  const rafRef = useRef(null);
-  const [activeIndex, setActiveIndex] = useState(0);
-
-  useEffect(() => {
-    const track = trackRef.current;
-    if (!track) return undefined;
-
-    function updateActiveIndex() {
-      const trackRect = track.getBoundingClientRect();
-      const viewportCenter = trackRect.left + trackRect.width / 2;
-
-      let bestIndex = 0;
-      let bestDistance = Number.POSITIVE_INFINITY;
-
-      cardRefs.current.forEach((card, index) => {
-        if (!card) return;
-        const rect = card.getBoundingClientRect();
-        const cardCenter = rect.left + rect.width / 2;
-        const distance = Math.abs(cardCenter - viewportCenter);
-        if (distance < bestDistance) {
-          bestDistance = distance;
-          bestIndex = index;
-        }
-      });
-
-      setActiveIndex(bestIndex);
-    }
-
-    function handleScroll() {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      rafRef.current = requestAnimationFrame(updateActiveIndex);
-    }
-
-    updateActiveIndex();
-    track.addEventListener("scroll", handleScroll, { passive: true });
-
-    return () => {
-      track.removeEventListener("scroll", handleScroll);
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
-  }, []);
-
   return (
     <section className="dashboard-carousel" aria-label="Dashboard menu">
-      <div className="dashboard-track" ref={trackRef}>
-        {cards.map((card, index) => (
-          <div className="dashboard-slide" key={card.title}>
+      <div className="dashboard-track">
+        {cards.map((card) => (
+          <div className="dashboard-slide" key={card.href}>
             <Link
-              aria-current={index === activeIndex ? "true" : undefined}
-              className={`dashboard-card ${index === activeIndex ? "is-active" : ""}`}
+              aria-label={card.label}
+              className="dashboard-card"
               href={card.href}
-              ref={(node) => {
-                cardRefs.current[index] = node;
-              }}
             >
               <div className="dashboard-media">
-                <span className="dashboard-badge">{card.badge}</span>
                 <FrameArt variant={card.variant} />
-              </div>
-              <div className="dashboard-caption">
-                <span className="dashboard-title">{card.title}</span>
-                <span className="dashboard-subtitle">{card.subtitle}</span>
               </div>
             </Link>
           </div>

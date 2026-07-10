@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { fetchAdminUserByToken } from "../lib/admin-api";
 
@@ -26,18 +25,22 @@ export function ScanPage() {
   const streamRef = useRef(null);
   const detectorRef = useRef(null);
   const rafRef = useRef(null);
-  const [isRunning, setIsRunning] = useState(false);
-  const [manualToken, setManualToken] = useState("");
-  const [lookupToken, setLookupToken] = useState("");
-  const [result, setResult] = useState(null);
-  const [message, setMessage] = useState("Point the camera at a guest QR code.");
-  const [error, setError] = useState("");
+  const ignoreTokenRef = useRef("");
+  const ignoreUntilRef = useRef(0);
+  const resumeTimerRef = useRef(null);
   const [supportsScan, setSupportsScan] = useState(false);
+  const [isCameraReady, setIsCameraReady] = useState(false);
+  const [activeGuest, setActiveGuest] = useState(null);
 
   async function stopCamera() {
     if (rafRef.current) {
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
+    }
+
+    if (resumeTimerRef.current) {
+      clearTimeout(resumeTimerRef.current);
+      resumeTimerRef.current = null;
     }
 
     if (streamRef.current) {
@@ -50,40 +53,11 @@ export function ScanPage() {
       video.srcObject = null;
     }
 
-    setIsRunning(false);
+    setIsCameraReady(false);
   }
 
-  async function lookupUser(token) {
-    const safeToken = String(token ?? "").trim();
-    if (!safeToken) {
-      return;
-    }
-
-    setLookupToken(safeToken);
-    setError("");
-    setMessage("Checking attendance record...");
-
-    try {
-      const user = await fetchAdminUserByToken(safeToken);
-      if (!user) {
-        setResult(null);
-        setMessage("No registration found for that QR code.");
-        return;
-      }
-
-      setResult(user);
-      setMessage("Guest matched successfully.");
-    } catch (err) {
-      setResult(null);
-      setError(err instanceof Error ? err.message : "Unable to verify QR code.");
-      setMessage("Unable to verify QR code.");
-    }
-  }
-
-  async function startCamera() {
-    setError("");
-    if (!supportsScan) {
-      setMessage("Your browser does not support live QR scanning. Use manual entry below.");
+  async function openCamera() {
+    if (!supportsScan || activeGuest) {
       return;
     }
 
@@ -107,11 +81,10 @@ export function ScanPage() {
 
       const detector = detectorRef.current ?? new window.BarcodeDetector({ formats: ["qr_code"] });
       detectorRef.current = detector;
-      setIsRunning(true);
-      setMessage("Scanning for QR code...");
+      setIsCameraReady(true);
 
       const scanFrame = async () => {
-        if (!videoRef.current || !detectorRef.current || !streamRef.current) {
+        if (!videoRef.current || !detectorRef.current || !streamRef.current || activeGuest) {
           return;
         }
 
@@ -119,10 +92,16 @@ export function ScanPage() {
           const codes = await detectorRef.current.detect(videoRef.current);
           if (codes.length) {
             const value = String(codes[0].rawValue ?? "").trim();
-            if (value) {
-              await stopCamera();
-              await lookupUser(value);
-              return;
+            const now = Date.now();
+            if (value && (ignoreTokenRef.current !== value || now > ignoreUntilRef.current)) {
+              ignoreTokenRef.current = value;
+              ignoreUntilRef.current = now + 2500;
+              const user = await fetchAdminUserByToken(value);
+              if (user) {
+                setActiveGuest(user);
+                await stopCamera();
+                return;
+              }
             }
           }
         } catch {
@@ -135,116 +114,68 @@ export function ScanPage() {
       };
 
       void scanFrame();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to open the camera.");
-      setMessage("Camera access is required for live scanning.");
+    } catch {
       await stopCamera();
     }
   }
 
+  function closeGuestCard() {
+    setActiveGuest(null);
+    resumeTimerRef.current = setTimeout(() => {
+      void openCamera();
+    }, 250);
+  }
+
   useEffect(() => {
     setSupportsScan("BarcodeDetector" in window && !!navigator.mediaDevices?.getUserMedia);
+  }, []);
+
+  useEffect(() => {
+    if (supportsScan) {
+      void openCamera();
+    }
 
     return () => {
       void stopCamera();
     };
-  }, []);
+  }, [supportsScan]);
+
+  const guestName = activeGuest ? `${activeGuest.firstName ?? ""} ${activeGuest.lastName ?? ""}`.trim() : "";
+  const guestStatus = activeGuest?.attendance || activeGuest?.status || "Attendance confirmed";
+  const guestPhoto = activeGuest?.profilePhotoUrl || activeGuest?.avatar || null;
 
   return (
-    <main className="page-root detail-page scan-page">
-      <section className="screen-shell scan-shell">
-        <header className="screen-topbar scan-topbar">
-          <Link className="back-link scan-back" href="/dashboard">
-            back
-          </Link>
-          <div className="screen-heading scan-heading">
-            <p className="eyebrow">scan</p>
-            <h1 className="screen-title">Attendance check</h1>
-          </div>
-        </header>
-
-        <div className="scan-summary">
-          <span>{isRunning ? "camera on" : "camera idle"}</span>
-          <span>{lookupToken ? `token ${lookupToken}` : "ready to scan"}</span>
+    <main className="page-root scan-page">
+      <section className="scan-shell" aria-label="QR scanner">
+        <div className="scan-stage">
+          <video ref={videoRef} className="scan-video" playsInline muted />
+          {!supportsScan ? <div className="scan-fallback">Camera unavailable</div> : null}
+          {!isCameraReady && supportsScan ? <div className="scan-fallback">Opening camera...</div> : null}
+          <div className="scan-frame" aria-hidden="true" />
         </div>
 
-        <article className="scan-card">
-          <div className="scan-camera">
-            <video ref={videoRef} className="scan-video" playsInline muted />
-            {!isRunning ? <div className="scan-placeholder">QR camera preview</div> : null}
-          </div>
-
-          <div className="scan-copy">
-            <p className="scan-message">{message}</p>
-            {error ? <p className="scan-error">{error}</p> : null}
-
-            <div className="scan-actions">
-              <button className="secondary-button" type="button" onClick={() => void startCamera()} disabled={isRunning}>
-                start camera
-              </button>
-              <button className="secondary-button" type="button" onClick={() => void stopCamera()} disabled={!isRunning}>
-                stop camera
-              </button>
-            </div>
-
-            <form
-              className="scan-manual"
-              onSubmit={(event) => {
-                event.preventDefault();
-                void lookupUser(manualToken);
-              }}
-            >
-              <label className="scan-input-label">
-                <span>Manual QR token</span>
-                <input
-                  className="field-input scan-input"
-                  placeholder="Paste or type the token"
-                  value={manualToken}
-                  onChange={(event) => setManualToken(event.target.value)}
-                />
-              </label>
-              <button className="primary-button scan-submit" type="submit">
-                verify attendance
-              </button>
-            </form>
-
-            {!supportsScan ? (
-              <p className="scan-note">This browser does not expose live QR scanning, so manual verification is enabled.</p>
-            ) : null}
-          </div>
-        </article>
-
-        {result ? (
-          <article className="scan-result">
-            <div className="scan-result-avatar">
-              {result.profilePhotoUrl ? (
-                <img alt={`${result.firstName} ${result.lastName}`} src={result.profilePhotoUrl} />
-              ) : (
-                <div className="scan-result-fallback">{initialsFor(result)}</div>
-              )}
-            </div>
-
-            <div className="scan-result-copy">
-              <div className="scan-result-row">
-                <strong>{result.firstName} {result.lastName}</strong>
-                <span className="status-chip">{result.attendance || "guest"}</span>
+        {activeGuest ? (
+          <div className="scan-modal" role="dialog" aria-modal="true" aria-label="Checked in guest">
+            <div className="scan-modal-card">
+              <div className="scan-modal-hero">
+                {guestPhoto ? (
+                  <img alt={guestName} src={guestPhoto} className="scan-modal-photo" />
+                ) : (
+                  <div className="scan-modal-fallback">{initialsFor(activeGuest)}</div>
+                )}
               </div>
-              <dl className="scan-result-meta">
-                <div>
-                  <dt>Phone</dt>
-                  <dd>{result.phoneNumber}</dd>
-                </div>
-                <div>
-                  <dt>Registered</dt>
-                  <dd>{formatValue(result.registeredAt ?? result.createdAt)}</dd>
-                </div>
-                <div>
-                  <dt>Check-in</dt>
-                  <dd>{formatValue(result.enteredAt ?? result.deviceTrackedAt)}</dd>
-                </div>
-              </dl>
+
+              <div className="scan-modal-copy">
+                <strong className="scan-modal-name">{guestName}</strong>
+                <p className="scan-modal-line">{guestStatus}</p>
+                <p className="scan-modal-line">{activeGuest.phoneNumber || "Unavailable"}</p>
+                <p className="scan-modal-line">{formatValue(activeGuest.registeredAt ?? activeGuest.createdAt)}</p>
+                <button className="primary-button scan-modal-button" type="button" onClick={closeGuestCard}>
+                  checked in
+                </button>
+              </div>
             </div>
-          </article>
+          </div>
         ) : null}
       </section>
     </main>

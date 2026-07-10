@@ -46,30 +46,32 @@ export default function HomePage() {
         </div>
 
         <form className="auth-panel" onSubmit={handleSubmit}>
-          <input
-            aria-label="First name"
-            className="field-input"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            placeholder="Your first name"
-            autoComplete="given-name"
-          />
+          <div className="name-row">
+            <input
+              aria-label="First name"
+              className="field-input"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              placeholder="First name"
+              autoComplete="given-name"
+            />
 
-          <input
-            aria-label="Last name"
-            className="field-input"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            placeholder="Your last name"
-            autoComplete="family-name"
-          />
+            <input
+              aria-label="Last name"
+              className="field-input"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              placeholder="Last name"
+              autoComplete="family-name"
+            />
+          </div>
 
           <input
             aria-label="Phone number"
             className="field-input"
             value={phoneNumber}
             onChange={(e) => setPhoneNumber(e.target.value)}
-            placeholder="Your phone number"
+            placeholder="Phone number"
             autoComplete="tel"
             inputMode="tel"
           />
