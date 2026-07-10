@@ -85,6 +85,8 @@ export function InquiryPage({ inquiries }) {
     () => visibleItems.find((item) => item.id === expandedId) ?? null,
     [expandedId, visibleItems],
   );
+  const openItemId = openItem?.id ?? "";
+  const openItemAcknowledgedAt = openItem?.humanAcknowledgedAt ?? "";
 
   useEffect(() => {
     if (!visibleItems.length) {
@@ -149,6 +151,44 @@ export function InquiryPage({ inquiries }) {
       setSavingId("");
     }
   }
+
+  async function acknowledgeItem(item) {
+    if (!item?.id || item.humanAcknowledgedAt) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/admin/inquiries/${item.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...(adminKey ? { "x-admin-key": adminKey } : {}),
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.ok) {
+        return;
+      }
+
+      if (data.inquiry) {
+        setItems((current) =>
+          current.map((entry) => (entry.id === item.id ? data.inquiry : entry)),
+        );
+      }
+    } catch {
+      // Acknowledgement is best effort only.
+    }
+  }
+
+  useEffect(() => {
+    if (!openItemId) {
+      return;
+    }
+
+    void acknowledgeItem(openItem);
+  }, [openItemId, openItemAcknowledgedAt, adminKey]);
 
   return (
     <main className="page-root detail-page inquiry-page">
