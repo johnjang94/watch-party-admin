@@ -1921,7 +1921,7 @@ img {
 .hero-media {
   background:
     linear-gradient(180deg, rgba(1, 7, 5, 0.18), rgba(1, 7, 5, 0.32)),
-    url("/image.jpg") center center / contain no-repeat;
+    url("/image.jpg") center center / cover no-repeat;
   background-color: #000;
 }
 
