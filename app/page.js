@@ -59,9 +59,7 @@ export default function HomePage() {
         <div className="hero-content">
           <div className="cta-band">
             <div className="login-copy">
-              <p className="eyebrow">watch party admin</p>
-              <h1 className="hero-title">enter the admin lounge</h1>
-              <p className="hero-description">Use your name and phone number to sign in.</p>
+              <h1 className="hero-title">admin</h1>
             </div>
 
             <div className={`auth-switch ${isLoginOpen ? "is-open" : ""}`}>

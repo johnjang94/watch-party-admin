@@ -2355,25 +2355,16 @@ img {
 
 .login-copy {
   display: grid;
-  gap: 8px;
+  gap: 0;
 }
 
 .hero-title {
   margin: 0;
-  font-size: clamp(2rem, 6.4vw, 4rem);
-  line-height: 0.92;
+  font-size: clamp(2.4rem, 7.2vw, 4.8rem);
+  line-height: 0.86;
   letter-spacing: -0.08em;
   text-transform: lowercase;
   text-wrap: balance;
-}
-
-.hero-description {
-  margin: 0;
-  color: rgba(234, 243, 238, 0.66);
-  line-height: 1.4;
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.2em;
 }
 
 .auth-switch {
@@ -2601,23 +2592,15 @@ img {
 }
 
 .overview-page .dashboard-caption {
-  gap: 6px;
-  padding: 18px 8px 8px;
+  gap: 0;
+  padding: 14px 8px 8px;
   background:
     linear-gradient(180deg, rgba(3, 4, 7, 0.08), rgba(3, 4, 7, 0.88) 30%, rgba(3, 4, 7, 0.98)),
     rgba(7, 10, 14, 0.92);
 }
 
 .overview-page .dashboard-title {
-  font-size: 1.48rem;
-  letter-spacing: 0.16em;
-}
-
-.overview-page .dashboard-subtitle {
-  color: rgba(244, 255, 248, 0.66);
-  line-height: 1.45;
-  font-size: 0.68rem;
-  text-transform: uppercase;
+  font-size: 1.68rem;
   letter-spacing: 0.18em;
 }
 
@@ -2655,6 +2638,10 @@ img {
     padding: 10px;
   }
 
+  .overview-page .dashboard-title {
+    font-size: 1.48rem;
+  }
+
   .mobile-nav {
     display: flex;
     gap: 8px;
@@ -2675,5 +2662,9 @@ img {
 
   .overview-page .dashboard-card {
     aspect-ratio: 0.84 / 1.12;
+  }
+
+  .overview-page .dashboard-title {
+    font-size: 1.78rem;
   }
 }

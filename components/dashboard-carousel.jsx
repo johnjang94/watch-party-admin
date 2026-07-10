@@ -98,7 +98,6 @@ const defaultCards = [
     href: "/new",
     kind: "photo",
     label: "new",
-    subtitle: "recent arrivals",
     src: selfieImage,
     alt: "Selfie photo for recent arrivals",
     priority: true,
@@ -107,7 +106,6 @@ const defaultCards = [
     href: "/all",
     kind: "photo",
     label: "all",
-    subtitle: "entire community",
     src: communityImage,
     alt: "Community photo for all guests",
   },
@@ -115,13 +113,11 @@ const defaultCards = [
     href: "/inquiry",
     kind: "chat",
     label: "inquiry",
-    subtitle: "live messages",
   },
   {
     href: "/profile",
     kind: "portrait",
     label: "profile",
-    subtitle: "admin details",
   },
 ];
 
@@ -194,7 +190,6 @@ export function DashboardCarousel({ cards = defaultCards }) {
               </div>
               <div className="dashboard-caption">
                 <strong className="dashboard-title">{card.label}</strong>
-                <span className="dashboard-subtitle">{card.subtitle}</span>
               </div>
             </Link>
           </div>
