@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 function readImageFile(file) {
   return new Promise((resolve, reject) => {
@@ -21,25 +21,46 @@ function formatDisplayName(session) {
 
 export default function ProfilePage() {
   const router = useRouter();
-  const [displayName, setDisplayName] = useState("John Jang");
-  const [phoneNumber, setPhoneNumber] = useState("647-553-3499");
-  const [photo, setPhoto] = useState("");
-
-  useEffect(() => {
-    const sessionRaw = window.localStorage.getItem("watch-party-admin-session");
-    if (sessionRaw) {
-      try {
-        const session = JSON.parse(sessionRaw);
-        setDisplayName(formatDisplayName(session));
-        if (session?.phoneNumber) setPhoneNumber(session.phoneNumber);
-      } catch {
-        // ignore parse errors and use defaults
-      }
+  const [displayName] = useState(() => {
+    if (typeof window === "undefined") {
+      return "John Jang";
     }
 
-    const savedPhoto = window.localStorage.getItem("watch-party-admin-photo");
-    if (savedPhoto) setPhoto(savedPhoto);
-  }, []);
+    const sessionRaw = window.localStorage.getItem("watch-party-admin-session");
+    if (!sessionRaw) {
+      return "John Jang";
+    }
+
+    try {
+      return formatDisplayName(JSON.parse(sessionRaw));
+    } catch {
+      return "John Jang";
+    }
+  });
+  const [phoneNumber, setPhoneNumber] = useState(() => {
+    if (typeof window === "undefined") {
+      return "647-553-3499";
+    }
+
+    const sessionRaw = window.localStorage.getItem("watch-party-admin-session");
+    if (!sessionRaw) {
+      return "647-553-3499";
+    }
+
+    try {
+      const session = JSON.parse(sessionRaw);
+      return session?.phoneNumber || "647-553-3499";
+    } catch {
+      return "647-553-3499";
+    }
+  });
+  const [photo, setPhoto] = useState(() => {
+    if (typeof window === "undefined") {
+      return "";
+    }
+
+    return window.localStorage.getItem("watch-party-admin-photo") || "";
+  });
 
   async function handlePhotoChange(event) {
     const file = event.target.files?.[0];

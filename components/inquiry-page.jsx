@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 const apiBaseUrl =
   process.env.NEXT_PUBLIC_CONTROL_URL ?? "https://fifa-control.onrender.com";
@@ -64,48 +64,35 @@ function matchesInquiry(item, query) {
 }
 
 export function InquiryPage({ inquiries }) {
-  const [items, setItems] = useState(inquiries);
+  const [items, setItems] = useState(() => inquiries);
   const [expandedId, setExpandedId] = useState(inquiries[0]?.id ?? "");
   const [drafts, setDrafts] = useState({});
-  const [adminKey, setAdminKey] = useState("");
+  const [adminKey, setAdminKey] = useState(() => {
+    if (typeof window === "undefined") {
+      return "";
+    }
+
+    return window.localStorage.getItem("fifa-admin-access-key") || "";
+  });
   const [savingId, setSavingId] = useState("");
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
 
-  useEffect(() => {
-    setItems(inquiries);
-    setExpandedId((current) => current || inquiries[0]?.id || "");
-  }, [inquiries]);
-
-  useEffect(() => {
-    const savedKey = window.localStorage.getItem("fifa-admin-access-key");
-    if (savedKey) {
-      setAdminKey(savedKey);
-    }
-  }, []);
-
   const visibleItems = useMemo(() => items.filter((item) => matchesInquiry(item, query)), [items, query]);
+  const resolvedExpandedId =
+    visibleItems.some((item) => item.id === expandedId) ? expandedId : visibleItems[0]?.id ?? "";
 
   const openItem = useMemo(
-    () => visibleItems.find((item) => item.id === expandedId) ?? null,
-    [expandedId, visibleItems],
+    () => visibleItems.find((item) => item.id === resolvedExpandedId) ?? null,
+    [resolvedExpandedId, visibleItems],
   );
-  const openItemId = openItem?.id ?? "";
-  const openItemAcknowledgedAt = openItem?.humanAcknowledgedAt ?? "";
-
-  useEffect(() => {
-    if (!visibleItems.length) {
-      setExpandedId("");
-      return;
-    }
-
-    if (!visibleItems.some((item) => item.id === expandedId)) {
-      setExpandedId(visibleItems[0].id);
-    }
-  }, [expandedId, visibleItems]);
 
   function toggleItem(id) {
     setExpandedId((current) => (current === id ? "" : id));
+    const target = items.find((item) => item.id === id);
+    if (target && !target.humanAcknowledgedAt) {
+      void acknowledgeItem(target);
+    }
   }
 
   function updateDraft(id, value) {
@@ -187,14 +174,6 @@ export function InquiryPage({ inquiries }) {
     }
   }
 
-  useEffect(() => {
-    if (!openItemId) {
-      return;
-    }
-
-    void acknowledgeItem(openItem);
-  }, [openItemId, openItemAcknowledgedAt, adminKey]);
-
   return (
     <main className="page-root detail-page inquiry-page">
       <section className="screen-shell inquiry-shell">
@@ -235,7 +214,7 @@ export function InquiryPage({ inquiries }) {
 
         <div className="inquiry-list inquiry-grid">
           {visibleItems.map((item) => {
-            const isOpen = expandedId === item.id;
+            const isOpen = resolvedExpandedId === item.id;
             const avatar = resolveAvatar(item);
             const requestReason = makeReason(item);
 

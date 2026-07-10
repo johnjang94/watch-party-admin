@@ -1,13 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useCallback } from "react";
 
 const controlBaseUrl =
   process.env.NEXT_PUBLIC_CONTROL_URL ?? "https://fifa-control.onrender.com";
 
 export function AdminDashboard() {
-  const [adminKey, setAdminKey] = useState("");
-  const [savedKey, setSavedKey] = useState("");
+  const [initialStoredKey] = useState(() => {
+    if (typeof window === "undefined") {
+      return "";
+    }
+
+    return window.localStorage.getItem("fifa-admin-access-key") || "";
+  });
+  const [adminKey, setAdminKey] = useState(() => initialStoredKey);
+  const [savedKey, setSavedKey] = useState(() => initialStoredKey);
   const [invites, setInvites] = useState([]);
   const [activities, setActivities] = useState([]);
   const [activitySessionFilter, setActivitySessionFilter] = useState("all");
@@ -20,16 +28,7 @@ export function AdminDashboard() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const stored = window.localStorage.getItem("fifa-admin-access-key");
-    if (stored) {
-      setAdminKey(stored);
-      setSavedKey(stored);
-      void loadDashboard(stored);
-    }
-  }, []);
-
-  async function loadDashboard(key) {
+  const loadDashboard = useCallback(async (key) => {
     setLoading(true);
     setError("");
 
@@ -81,7 +80,18 @@ export function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    if (initialStoredKey) {
+      const timer = window.setTimeout(() => {
+        void loadDashboard(initialStoredKey);
+      }, 0);
+
+      return () => window.clearTimeout(timer);
+    }
+    return undefined;
+  }, [initialStoredKey, loadDashboard]);
 
   async function saveCapacity() {
     setCapacitySaving(true);

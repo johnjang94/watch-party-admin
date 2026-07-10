@@ -59,9 +59,9 @@ img {
 }
 
 .screen-shell {
-  width: min(100%, 980px);
+  width: min(100%, 720px);
   margin: 0 auto;
-  padding: 16px;
+  padding: clamp(12px, 3vw, 16px);
 }
 
 .auth-page,
@@ -1194,11 +1194,11 @@ img {
 .mobile-nav {
   position: fixed;
   left: 50%;
-  bottom: max(10px, env(safe-area-inset-bottom));
+  bottom: max(8px, env(safe-area-inset-bottom));
   transform: translateX(-50%);
-  width: min(100% - 20px, 460px);
-  padding: 10px;
-  border-radius: 24px;
+  width: min(100% - 16px, 420px);
+  padding: 8px;
+  border-radius: 22px;
   border: 1px solid rgba(220, 255, 229, 0.12);
   background: rgba(6, 14, 10, 0.72);
   backdrop-filter: blur(20px) saturate(140%);
@@ -1243,6 +1243,7 @@ img {
 
 @media (max-width: 640px) {
   .screen-shell {
+    width: 100%;
     padding: 0;
   }
 
@@ -1329,8 +1330,59 @@ img {
     grid-column: auto;
   }
 
+  .inquiry-summary {
+    font-size: 0.64rem;
+  }
+
+  .inquiry-search {
+    gap: 10px;
+  }
+
+  .inquiry-search-field {
+    flex-basis: 100%;
+    gap: 6px;
+  }
+
+  .inquiry-search-input,
+  .inquiry-clear {
+    min-height: 52px;
+    border-radius: 18px;
+  }
+
+  .inquiry-panel {
+    border-radius: 24px;
+  }
+
   .inquiry-panel-head {
     gap: 10px;
+  }
+
+  .inquiry-summary-button {
+    padding: 14px;
+  }
+
+  .inquiry-avatar,
+  .inquiry-avatar-fallback {
+    width: 56px;
+    height: 56px;
+    border-radius: 18px;
+  }
+
+  .inquiry-body {
+    padding: 0 14px 14px;
+    gap: 10px;
+  }
+
+  .inquiry-thread {
+    max-height: 300px;
+  }
+
+  .inquiry-reply-input {
+    min-height: 88px;
+  }
+
+  .inquiry-reply-button {
+    min-height: 52px;
   }
 
   .inquiry-chip-stack {
@@ -2293,15 +2345,15 @@ img {
   }
 
   .dashboard-track {
-    grid-auto-columns: min(82%, 320px);
-    gap: 12px;
+    grid-auto-columns: min(86%, 300px);
+    gap: 10px;
     width: 100%;
-    padding-inline: 16px;
+    padding-inline: 12px;
   }
 
   .dashboard-card {
-    aspect-ratio: 0.9 / 1.2;
-    padding: 10px;
+    aspect-ratio: 0.92 / 1.18;
+    padding: 9px;
   }
 
   .scan-page {
@@ -2320,6 +2372,60 @@ img {
 
   .scan-modal-card {
     width: min(100%, 360px);
+  }
+
+  .home-page .hero-title {
+    font-size: clamp(2rem, 10vw, 3.3rem);
+  }
+
+  .login-button,
+  .login-submit {
+    min-height: 52px;
+  }
+
+  .login-field input {
+    min-height: 48px;
+    font-size: 0.92rem;
+  }
+
+  .overview-page .dashboard-track {
+    grid-auto-columns: min(86%, 320px);
+    gap: 12px;
+    padding: 14px 12px 18px;
+  }
+
+  .overview-page .dashboard-card {
+    padding: 9px;
+    aspect-ratio: 0.9 / 1.16;
+  }
+
+  .overview-page .dashboard-title {
+    font-size: 1.32rem;
+  }
+
+  .collection-card,
+  .user-card,
+  .inquiry-card {
+    padding: 14px;
+    gap: 12px;
+  }
+
+  .collection-avatar-frame,
+  .user-avatar-frame {
+    height: 170px;
+  }
+
+  .profile-photo-frame {
+    width: 112px;
+    height: 112px;
+  }
+
+  .profile-copy {
+    padding: 20px 16px 18px;
+  }
+
+  .profile-card {
+    padding: 14px;
   }
 }
 
@@ -2887,34 +2993,47 @@ img {
 
   .collection-card {
     grid-template-columns: 1fr;
-    gap: 14px;
+    gap: 12px;
     min-height: 0;
   }
 
   .collection-avatar-frame {
     width: 100%;
-    height: 196px;
+    height: 168px;
   }
 
   .collection-meta {
     grid-template-columns: 1fr;
   }
 
+  .collection-page .screen-title,
+  .profile-copy .screen-title {
+    font-size: clamp(1.8rem, 9vw, 2.5rem);
+  }
+
   .profile-hero {
-    min-height: 58dvh;
-    border-radius: 30px;
+    min-height: 52dvh;
+    border-radius: 28px;
   }
 
   .profile-upload-button {
     right: 14px;
     top: 14px;
-    width: 48px;
-    height: 48px;
+    width: 46px;
+    height: 46px;
   }
 
   .profile-photo-frame {
-    width: 118px;
-    height: 118px;
+    width: 108px;
+    height: 108px;
+  }
+
+  .profile-copy {
+    padding: 18px 14px 16px;
+  }
+
+  .profile-card {
+    padding: 14px;
   }
 }
 
@@ -3062,12 +3181,12 @@ img {
 @media (max-width: 640px) {
   .collection-card {
     grid-template-columns: 1fr;
-    gap: 14px;
+    gap: 12px;
   }
 
   .collection-avatar-frame {
     width: 100%;
-    height: 180px;
+    height: 168px;
   }
 
   .collection-meta {
@@ -3075,12 +3194,20 @@ img {
   }
 
   .profile-hero {
-    min-height: 58dvh;
-    border-radius: 30px;
+    min-height: 52dvh;
+    border-radius: 28px;
   }
 
   .profile-photo-frame {
-    width: 118px;
-    height: 118px;
+    width: 108px;
+    height: 108px;
+  }
+
+  .profile-copy {
+    padding: 18px 14px 16px;
+  }
+
+  .profile-card {
+    padding: 14px;
   }
 }

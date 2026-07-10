@@ -6,12 +6,15 @@
     "dev": "next dev --webpack -p 3009",
     "build": "next build --webpack",
     "start": "next start -p 3009",
-    "lint": "next lint"
+    "lint": "eslint ."
   },
   "dependencies": {
     "next": "16.1.1",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "eslint": "^9.39.4",
+    "eslint-config-next": "^16.2.10"
+  }
 }

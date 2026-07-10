@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useCallback } from "react";
 import { fetchAdminUserByToken } from "../lib/admin-api";
 
 function formatValue(value) {
@@ -32,11 +33,17 @@ export function ScanPage() {
   const ignoreTokenRef = useRef("");
   const ignoreUntilRef = useRef(0);
   const resumeTimerRef = useRef(null);
-  const [supportsScan, setSupportsScan] = useState(false);
+  const [supportsScan] = useState(() => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+
+    return "BarcodeDetector" in window && !!navigator.mediaDevices?.getUserMedia;
+  });
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [activeGuest, setActiveGuest] = useState(null);
 
-  async function stopCamera() {
+  const stopCamera = useCallback(async () => {
     if (rafRef.current) {
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
@@ -58,9 +65,9 @@ export function ScanPage() {
     }
 
     setIsCameraReady(false);
-  }
+  }, []);
 
-  async function openCamera() {
+  const openCamera = useCallback(async () => {
     if (!supportsScan || activeGuest) {
       return;
     }
@@ -121,7 +128,7 @@ export function ScanPage() {
     } catch {
       await stopCamera();
     }
-  }
+  }, [activeGuest, stopCamera, supportsScan]);
 
   function closeGuestCard() {
     setActiveGuest(null);
@@ -131,18 +138,19 @@ export function ScanPage() {
   }
 
   useEffect(() => {
-    setSupportsScan("BarcodeDetector" in window && !!navigator.mediaDevices?.getUserMedia);
-  }, []);
-
-  useEffect(() => {
-    if (supportsScan) {
-      void openCamera();
+    if (!supportsScan) {
+      return undefined;
     }
 
+    const startTimer = window.setTimeout(() => {
+      void openCamera();
+    }, 0);
+
     return () => {
+      window.clearTimeout(startTimer);
       void stopCamera();
     };
-  }, [supportsScan]);
+  }, [openCamera, stopCamera, supportsScan]);
 
   const guestName = activeGuest ? `${activeGuest.firstName ?? ""} ${activeGuest.lastName ?? ""}`.trim() : "";
   const guestStatus = resolveRsvp(activeGuest);
