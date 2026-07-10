@@ -180,11 +180,9 @@ export function DashboardCarousel({ cards = defaultCards }) {
                 cardRefs.current[index] = node;
               }}
             >
+              <span className="dashboard-badge">{card.label}</span>
               <div className="dashboard-media">
                 <CardMedia card={card} />
-              </div>
-              <div className="dashboard-caption">
-                <strong className="dashboard-title">{card.label}</strong>
               </div>
             </Link>
           </div>

@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 
 function formatValue(value) {
   if (!value) return "Unavailable";
@@ -41,7 +44,21 @@ function hasSurveyAnswers(user) {
   );
 }
 
-export function UserListPage({ title, users }) {
+function UserAvatar({ user, className, fallbackClassName }) {
+  const avatar = resolveAvatar(user);
+
+  if (avatar) {
+    return <img alt={`${user.firstName} ${user.lastName}`} className={className} src={avatar} />;
+  }
+
+  return (
+    <div className={fallbackClassName} aria-hidden="true">
+      {initialsFor(user)}
+    </div>
+  );
+}
+
+function OldListView({ title, users }) {
   const hasUsers = users.length > 0;
 
   return (
@@ -61,17 +78,11 @@ export function UserListPage({ title, users }) {
             {users.map((user) => (
               <article className="user-card roster-card collection-card" key={user.id}>
                 <div className="user-avatar-frame roster-avatar-frame collection-avatar-frame">
-                  {resolveAvatar(user) ? (
-                    <img
-                      alt={`${user.firstName} ${user.lastName}`}
-                      className="user-avatar"
-                      src={resolveAvatar(user)}
-                    />
-                  ) : (
-                    <div className="user-avatar-fallback" aria-hidden="true">
-                      {initialsFor(user)}
-                    </div>
-                  )}
+                  <UserAvatar
+                    className="user-avatar"
+                    fallbackClassName="user-avatar-fallback"
+                    user={user}
+                  />
                 </div>
 
                 <div className="user-body roster-body">
@@ -128,4 +139,142 @@ export function UserListPage({ title, users }) {
       </section>
     </main>
   );
+}
+
+function NewDetailCard({ user }) {
+  const avatar = resolveAvatar(user);
+
+  return (
+    <article className="new-detail-card">
+      <div className="new-detail-hero">
+        {avatar ? (
+          <img alt={`${user.firstName} ${user.lastName}`} className="new-detail-photo" src={avatar} />
+        ) : (
+          <div className="new-detail-fallback" aria-hidden="true">
+            {initialsFor(user)}
+          </div>
+        )}
+      </div>
+
+      <div className="new-detail-copy">
+        <div className="new-detail-title-row">
+          <strong className="new-detail-name">
+            {user.firstName} {user.lastName}
+          </strong>
+          <span className="status-chip is-muted new-detail-chip">Guest</span>
+        </div>
+
+        <dl className="new-detail-meta">
+          <div>
+            <dt>Phone</dt>
+            <dd>{user.phoneNumber || "Unavailable"}</dd>
+          </div>
+          <div>
+            <dt>Joined</dt>
+            <dd>{formatValue(user.registeredAt ?? user.createdAt)}</dd>
+          </div>
+        </dl>
+
+        {hasSurveyAnswers(user) ? (
+          <div className="new-detail-survey">
+            <strong className="user-survey-title">Survey</strong>
+            <dl className="user-meta survey-meta new-survey-meta">
+              <div>
+                <dt>Heard from</dt>
+                <dd>{user.survey?.howDidYouKnow || "Unavailable"}</dd>
+              </div>
+              <div>
+                <dt>Referred by</dt>
+                <dd>{user.survey?.referredBy || "n/a"}</dd>
+              </div>
+              <div>
+                <dt>Dietary</dt>
+                <dd>{user.survey?.dietaryRestrictions || "n/a"}</dd>
+              </div>
+              <div>
+                <dt>Resident</dt>
+                <dd>{user.survey?.resident || "n/a"}</dd>
+              </div>
+            </dl>
+          </div>
+        ) : null}
+      </div>
+    </article>
+  );
+}
+
+function NewListView({ title, users }) {
+  const hasUsers = users.length > 0;
+  const [selectedId, setSelectedId] = useState(() => users[0]?.id ?? "");
+  const selectedUser = users.find((user) => user.id === selectedId) ?? users[0] ?? null;
+  const selectedUserId = selectedUser?.id ?? "";
+
+  return (
+    <main className="page-root detail-page new-page">
+      <section className="screen-shell new-shell">
+        <header className="new-topbar">
+          <div className="screen-heading new-heading">
+            <p className="eyebrow">new</p>
+            <h1 className="screen-title">{title}</h1>
+          </div>
+          <p className="new-summary">{hasUsers ? `${users.length} guests` : "No guests yet"}</p>
+        </header>
+
+        {hasUsers ? (
+          <div className="new-layout">
+            <section className="new-list-card" aria-label="New guest list">
+              <div className="new-list">
+                {users.map((user) => {
+                  const isActive = selectedUserId === user.id;
+
+                  return (
+                    <button
+                      className={`new-list-item ${isActive ? "is-active" : ""}`}
+                      key={user.id}
+                      type="button"
+                      onClick={() => setSelectedId(user.id)}
+                    >
+                      <div className="new-list-avatar">
+                        <UserAvatar
+                          className="new-list-photo"
+                          fallbackClassName="new-list-fallback"
+                          user={user}
+                        />
+                      </div>
+
+                      <div className="new-list-copy">
+                        <strong className="new-list-name">
+                          {user.firstName} {user.lastName}
+                        </strong>
+                        <span className="new-list-meta">{user.phoneNumber || "Unavailable"}</span>
+                      </div>
+
+                      <span className="new-list-arrow" aria-hidden="true">
+                        →
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            {selectedUser ? <NewDetailCard user={selectedUser} /> : null}
+          </div>
+        ) : (
+          <div className="roster-empty new-empty">
+            <strong>No guests yet.</strong>
+            <p>The list will populate as soon as the backend returns registrations.</p>
+          </div>
+        )}
+      </section>
+    </main>
+  );
+}
+
+export function UserListPage({ title, users, variant = "all" }) {
+  if (variant === "new") {
+    return <NewListView title={title} users={users} />;
+  }
+
+  return <OldListView title={title} users={users} />;
 }
