@@ -24,7 +24,6 @@ export default function ProfilePage() {
   const [displayName, setDisplayName] = useState("John Jang");
   const [phoneNumber, setPhoneNumber] = useState("647-553-3499");
   const [photo, setPhoto] = useState("");
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const sessionRaw = window.localStorage.getItem("watch-party-admin-session");
@@ -46,14 +45,9 @@ export default function ProfilePage() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    setSaving(true);
-    try {
-      const dataUrl = await readImageFile(file);
-      setPhoto(dataUrl);
-      window.localStorage.setItem("watch-party-admin-photo", dataUrl);
-    } finally {
-      setSaving(false);
-    }
+    const dataUrl = await readImageFile(file);
+    setPhoto(dataUrl);
+    window.localStorage.setItem("watch-party-admin-photo", dataUrl);
   }
 
   function handleLogout() {
@@ -66,6 +60,14 @@ export default function ProfilePage() {
     <main className="page-root profile-page">
       <section className="screen-shell profile-shell">
         <div className="profile-hero">
+          <label className="profile-upload-button" aria-label="Change photo">
+            <svg aria-hidden="true" viewBox="0 0 24 24" className="profile-upload-icon">
+              <path d="M12 5.25 10.9 7.1H8.7A2.7 2.7 0 0 0 6 9.8v6.45A2.75 2.75 0 0 0 8.75 19h6.5A2.75 2.75 0 0 0 18 16.25V9.8a2.7 2.7 0 0 0-2.7-2.7h-2.2L12 5.25Zm0 4.25a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7Z" />
+            </svg>
+            <span className="sr-only">Change photo</span>
+            <input type="file" accept="image/*" onChange={handlePhotoChange} className="profile-upload-input" />
+          </label>
+
           <div className="profile-photo-frame">
             {photo ? (
               <Image alt="Profile photo" className="profile-photo" src={photo} width={320} height={320} />
@@ -75,23 +77,15 @@ export default function ProfilePage() {
           </div>
 
           <div className="profile-copy">
-            <p className="eyebrow">profile</p>
             <h1 className="screen-title">{displayName}</h1>
             <p className="profile-meta">{phoneNumber}</p>
           </div>
         </div>
 
         <div className="profile-card">
-          <label className="profile-upload">
-            <span>Change photo</span>
-            <input type="file" accept="image/*" onChange={handlePhotoChange} />
-          </label>
-
           <button className="secondary-button" type="button" onClick={handleLogout}>
             Logout
           </button>
-
-          {saving ? <p className="profile-note">Updating photo...</p> : <p className="profile-note">Photo changes stay on this device.</p>}
         </div>
       </section>
     </main>

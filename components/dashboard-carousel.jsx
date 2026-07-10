@@ -114,11 +114,6 @@ const defaultCards = [
     kind: "chat",
     label: "inquiry",
   },
-  {
-    href: "/profile",
-    kind: "portrait",
-    label: "profile",
-  },
 ];
 
 export function DashboardCarousel({ cards = defaultCards }) {

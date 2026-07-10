@@ -29,36 +29,26 @@ function initialsFor(user) {
   return `${String(user.firstName ?? "").charAt(0)}${String(user.lastName ?? "").charAt(0)}`.trim() || "U";
 }
 
-function resolveRsvp(user) {
-  return String(user.rsvp ?? user.attendance ?? "Going");
-}
-
-export function UserListPage({ title, subtitle, users }) {
+export function UserListPage({ title, users }) {
   const hasUsers = users.length > 0;
 
   return (
-    <main className="page-root detail-page roster-page">
-      <section className="screen-shell list-shell roster-shell">
-        <header className="screen-topbar roster-topbar">
+    <main className="page-root detail-page roster-page collection-page">
+      <section className="screen-shell list-shell roster-shell collection-shell">
+        <header className="screen-topbar roster-topbar collection-topbar">
           <Link className="back-link roster-back" href="/dashboard">
             back
           </Link>
-          <div className="screen-heading roster-heading">
-            <p className="eyebrow">{title}</p>
-            <h1 className="screen-title">{subtitle}</h1>
+          <div className="screen-heading roster-heading collection-heading">
+            <h1 className="screen-title">{title}</h1>
           </div>
         </header>
-
-        <div className="roster-summary">
-          <span>{users.length} guests</span>
-          <span>{title === "new" ? "last 24 hours" : "all time"}</span>
-        </div>
 
         {hasUsers ? (
           <div className="user-list roster-grid">
             {users.map((user) => (
-              <article className="user-card roster-card" key={user.id}>
-                <div className="user-avatar-frame roster-avatar-frame">
+              <article className="user-card roster-card collection-card" key={user.id}>
+                <div className="user-avatar-frame roster-avatar-frame collection-avatar-frame">
                   {resolveAvatar(user) ? (
                     <img
                       alt={`${user.firstName} ${user.lastName}`}
@@ -73,32 +63,20 @@ export function UserListPage({ title, subtitle, users }) {
                 </div>
 
                 <div className="user-body roster-body">
-                  <div className="user-title-row roster-title-row">
+                  <div className="user-title-row roster-title-row collection-title-row">
                     <strong className="user-name roster-name">
                       {user.firstName} {user.lastName}
                     </strong>
-                    <div className="roster-chip-group">
-                      <span className="status-chip roster-chip">{user.attendance || "guest"}</span>
-                      <span className="status-chip roster-chip is-muted">{resolveRsvp(user)}</span>
-                    </div>
                   </div>
 
-                  <dl className="user-meta roster-meta">
+                  <dl className="user-meta roster-meta collection-meta">
                     <div>
                       <dt>Phone</dt>
                       <dd>{user.phoneNumber}</dd>
                     </div>
                     <div>
-                      <dt>Registered</dt>
+                      <dt>Joined</dt>
                       <dd>{formatValue(user.registeredAt ?? user.createdAt)}</dd>
-                    </div>
-                    <div>
-                      <dt>Check-in</dt>
-                      <dd>{formatValue(user.enteredAt ?? user.deviceTrackedAt)}</dd>
-                    </div>
-                    <div>
-                      <dt>RSVP</dt>
-                      <dd>{resolveRsvp(user)}</dd>
                     </div>
                   </dl>
                 </div>

@@ -58,14 +58,10 @@ export default function HomePage() {
 
         <div className="hero-content">
           <div className="cta-band">
-            <div className="login-copy">
-              <h1 className="hero-title">admin</h1>
-            </div>
-
             <div className={`auth-switch ${isLoginOpen ? "is-open" : ""}`}>
               <div className="auth-state auth-state-login" aria-hidden={isLoginOpen}>
                 <button className="login-button" onClick={() => setIsLoginOpen(true)} type="button">
-                  login
+                  admin login
                 </button>
               </div>
 
@@ -113,7 +109,7 @@ export default function HomePage() {
                 ) : null}
 
                 <button className="login-submit" disabled={isSubmitting} type="submit">
-                  {isSubmitting ? "authenticating..." : "enter the party"}
+                  {isSubmitting ? "authenticating..." : "login"}
                 </button>
               </form>
             </div>

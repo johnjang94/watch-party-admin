@@ -2668,3 +2668,391 @@ img {
     font-size: 1.78rem;
   }
 }
+
+.collection-summary {
+  display: none;
+}
+
+.collection-shell {
+  gap: 18px;
+}
+
+.overview-page .dashboard-carousel {
+  padding-bottom: 8px;
+}
+
+.overview-page .dashboard-track {
+  grid-auto-columns: min(82%, 540px);
+  gap: 24px;
+  padding: 20px max(8vw, 20px) 28px;
+}
+
+.overview-page .dashboard-card {
+  aspect-ratio: 0.82 / 1.1;
+  padding: 14px;
+  transform: translateY(8px) scale(0.955);
+  filter: saturate(0.84) contrast(0.95);
+  box-shadow:
+    0 34px 86px rgba(0, 0, 0, 0.44),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.overview-page .dashboard-card.is-active {
+  box-shadow:
+    0 46px 120px rgba(0, 0, 0, 0.64),
+    0 0 0 1px rgba(246, 209, 93, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.overview-page .dashboard-caption {
+  padding: 16px 8px 10px;
+}
+
+.overview-page .dashboard-title {
+  font-size: 1.74rem;
+  letter-spacing: 0.2em;
+}
+
+.collection-shell {
+  width: min(100%, 760px);
+}
+
+.collection-card {
+  padding: 18px;
+  gap: 22px;
+  border-radius: 32px;
+  min-height: 180px;
+  box-shadow:
+    0 30px 78px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.collection-avatar-frame {
+  width: 132px;
+  height: 132px;
+}
+
+.collection-page .screen-title {
+  font-size: clamp(2.1rem, 6vw, 3.2rem);
+  letter-spacing: -0.08em;
+}
+
+.collection-page .user-name {
+  font-size: 1.16rem;
+}
+
+.profile-shell {
+  width: min(100%, 760px);
+  gap: 14px;
+}
+
+.profile-hero {
+  min-height: 62dvh;
+}
+
+.profile-hero::before {
+  opacity: 0.14;
+}
+
+.profile-upload-button {
+  position: absolute;
+  right: 18px;
+  top: 18px;
+  z-index: 2;
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(4, 8, 12, 0.56);
+  color: var(--text);
+  backdrop-filter: blur(18px) saturate(120%);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28);
+  cursor: pointer;
+}
+
+.profile-upload-icon {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+}
+
+.profile-upload-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.profile-photo-frame {
+  width: 136px;
+  height: 136px;
+}
+
+.profile-copy {
+  padding: 24px 20px 22px;
+}
+
+.profile-copy .screen-title {
+  font-size: clamp(2rem, 5vw, 3rem);
+}
+
+.profile-meta {
+  margin-top: 8px;
+  font-size: 0.92rem;
+}
+
+.profile-card {
+  border-radius: 28px;
+  padding: 18px;
+  gap: 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015)),
+    rgba(7, 16, 12, 0.84);
+}
+
+.profile-card .secondary-button {
+  width: fit-content;
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 999px;
+  justify-self: end;
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.profile-note {
+  display: none;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 640px) {
+  .overview-page .dashboard-track {
+    grid-auto-columns: min(90%, 460px);
+    gap: 16px;
+    width: 100%;
+    padding: 16px 16px 22px;
+  }
+
+  .overview-page .dashboard-card {
+    aspect-ratio: 0.88 / 1.18;
+    padding: 11px;
+  }
+
+  .overview-page .dashboard-title {
+    font-size: 1.48rem;
+  }
+
+  .collection-card {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    min-height: 0;
+  }
+
+  .collection-avatar-frame {
+    width: 100%;
+    height: 196px;
+  }
+
+  .collection-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-hero {
+    min-height: 58dvh;
+    border-radius: 30px;
+  }
+
+  .profile-upload-button {
+    right: 14px;
+    top: 14px;
+    width: 48px;
+    height: 48px;
+  }
+
+  .profile-photo-frame {
+    width: 118px;
+    height: 118px;
+  }
+}
+
+.collection-page {
+  position: relative;
+}
+
+.collection-shell {
+  width: min(100%, 760px);
+  gap: 16px;
+}
+
+.collection-topbar {
+  align-items: end;
+}
+
+.collection-heading {
+  text-align: left;
+}
+
+.collection-heading .screen-title {
+  text-transform: lowercase;
+}
+
+.collection-summary {
+  color: rgba(234, 243, 238, 0.62);
+}
+
+.collection-card {
+  grid-template-columns: 128px minmax(0, 1fr);
+  gap: 18px;
+  padding: 18px;
+  border-radius: 30px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015)),
+    linear-gradient(180deg, rgba(5, 8, 12, 0.92), rgba(4, 6, 10, 0.8));
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 30px 78px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.collection-avatar-frame {
+  width: 128px;
+  height: 128px;
+  border-radius: 28px;
+}
+
+.collection-title-row {
+  align-items: end;
+}
+
+.collection-meta {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.collection-meta dd {
+  font-size: 0.96rem;
+}
+
+.collection-page .user-name {
+  font-size: 1.16rem;
+  letter-spacing: 0.02em;
+}
+
+.collection-page .screen-title {
+  font-size: clamp(2.1rem, 6vw, 3.2rem);
+  letter-spacing: -0.08em;
+}
+
+.collection-page .roster-summary {
+  padding: 0 2px;
+}
+
+.collection-page .user-list {
+  gap: 14px;
+}
+
+.profile-page {
+  position: relative;
+}
+
+.profile-shell {
+  width: min(100%, 760px);
+  gap: 14px;
+}
+
+.profile-hero {
+  min-height: 62dvh;
+  border-radius: 34px;
+  border-color: rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(circle at top left, rgba(246, 209, 93, 0.08), transparent 28%),
+    radial-gradient(circle at top right, rgba(119, 231, 160, 0.12), transparent 28%),
+    linear-gradient(180deg, rgba(7, 13, 16, 0.7), rgba(3, 7, 10, 0.96));
+}
+
+.profile-hero::before {
+  opacity: 0.14;
+  filter: saturate(0.88) contrast(1.02);
+}
+
+.profile-photo-frame {
+  width: 136px;
+  height: 136px;
+  border-radius: 32px;
+}
+
+.profile-copy {
+  padding: 24px 20px 22px;
+}
+
+.profile-copy .screen-title {
+  font-size: clamp(2rem, 5vw, 3rem);
+}
+
+.profile-meta {
+  margin-top: 8px;
+  font-size: 0.92rem;
+}
+
+.profile-card {
+  border-radius: 28px;
+  padding: 18px;
+  gap: 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015)),
+    rgba(7, 16, 12, 0.84);
+}
+
+.profile-upload {
+  margin: 0;
+}
+
+.profile-upload input {
+  min-height: 56px;
+  border-radius: 18px;
+}
+
+.profile-note {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .collection-card {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .collection-avatar-frame {
+    width: 100%;
+    height: 180px;
+  }
+
+  .collection-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-hero {
+    min-height: 58dvh;
+    border-radius: 30px;
+  }
+
+  .profile-photo-frame {
+    width: 118px;
+    height: 118px;
+  }
+}
