@@ -29,6 +29,18 @@ function initialsFor(user) {
   return `${String(user.firstName ?? "").charAt(0)}${String(user.lastName ?? "").charAt(0)}`.trim() || "U";
 }
 
+function hasSurveyAnswers(user) {
+  const survey = user.survey ?? {};
+  return Boolean(
+    survey &&
+      (survey.howDidYouKnow ||
+        survey.referredBy ||
+        survey.dietaryRestrictions ||
+        survey.resident ||
+        survey.submittedAt),
+  );
+}
+
 export function UserListPage({ title, users }) {
   const hasUsers = users.length > 0;
 
@@ -79,6 +91,30 @@ export function UserListPage({ title, users }) {
                       <dd>{formatValue(user.registeredAt ?? user.createdAt)}</dd>
                     </div>
                   </dl>
+
+                  {hasSurveyAnswers(user) ? (
+                    <div className="user-survey">
+                      <strong className="user-survey-title">Survey</strong>
+                      <dl className="user-meta survey-meta">
+                        <div>
+                          <dt>Heard from</dt>
+                          <dd>{user.survey?.howDidYouKnow || "Unavailable"}</dd>
+                        </div>
+                        <div>
+                          <dt>Referred by</dt>
+                          <dd>{user.survey?.referredBy || "n/a"}</dd>
+                        </div>
+                        <div>
+                          <dt>Dietary</dt>
+                          <dd>{user.survey?.dietaryRestrictions || "n/a"}</dd>
+                        </div>
+                        <div>
+                          <dt>Resident</dt>
+                          <dd>{user.survey?.resident || "n/a"}</dd>
+                        </div>
+                      </dl>
+                    </div>
+                  ) : null}
                 </div>
               </article>
             ))}

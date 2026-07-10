@@ -805,6 +805,24 @@ img {
   gap: 12px;
 }
 
+.user-survey {
+  display: grid;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.user-survey-title {
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.72rem;
+}
+
+.survey-meta {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .user-title-row,
 .inquiry-card-head {
   display: flex;
@@ -845,6 +863,16 @@ img {
   color: var(--text);
   line-height: 1.5;
   word-break: break-word;
+}
+
+.survey-meta dd {
+  color: #f4fff8;
+}
+
+@media (max-width: 720px) {
+  .survey-meta {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
 }
 
 .status-chip {
