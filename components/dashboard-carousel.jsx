@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useId } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 function SingleProfileArt() {
   const glowId = useId();
@@ -97,9 +97,33 @@ function ScanArt() {
   );
 }
 
+function InquiryArt() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 160 160" className="dashboard-art">
+      <rect width="160" height="160" rx="28" fill="#090814" />
+      <path
+        d="M38 44h84c7.2 0 13 5.8 13 13v42c0 7.2-5.8 13-13 13H76l-20 18v-18H38c-7.2 0-13-5.8-13-13V57c0-7.2 5.8-13 13-13Z"
+        fill="rgba(255,255,255,0.08)"
+      />
+      <path d="M48 62h64" stroke="#f4fff8" strokeLinecap="round" strokeWidth="6" opacity="0.9" />
+      <path d="M48 79h44" stroke="#f4fff8" strokeLinecap="round" strokeWidth="6" opacity="0.72" />
+      <path d="M48 96h54" stroke="#f4fff8" strokeLinecap="round" strokeWidth="6" opacity="0.56" />
+      <circle cx="121" cy="121" r="14" fill="rgba(126,77,214,0.28)" />
+      <circle cx="121" cy="121" r="6" fill="#f6d15d" opacity="0.95" />
+      <path
+        d="M30 26h100c2.8 0 5 2.2 5 5v98c0 2.8-2.2 5-5 5H30c-2.8 0-5-2.2-5-5V31c0-2.8 2.2-5 5-5Z"
+        fill="none"
+        stroke="rgba(255,255,255,0.08)"
+        strokeWidth="2"
+      />
+    </svg>
+  );
+}
+
 function FrameArt({ variant }) {
   if (variant === "scan") return <ScanArt />;
   if (variant === "group") return <GroupProfileArt />;
+  if (variant === "inquiry") return <InquiryArt />;
   return <SingleProfileArt />;
 }
 
@@ -107,17 +131,22 @@ const defaultCards = [
   {
     href: "/new",
     variant: "single",
-    label: "New guests",
+    label: "New",
   },
   {
     href: "/all",
     variant: "group",
-    label: "All guests",
+    label: "All",
+  },
+  {
+    href: "/inquiry",
+    variant: "inquiry",
+    label: "Inquiry",
   },
   {
     href: "/scan",
     variant: "scan",
-    label: "Scan QR",
+    label: "Scan",
   },
   {
     href: "/profile",
@@ -127,18 +156,69 @@ const defaultCards = [
 ];
 
 export function DashboardCarousel({ cards = defaultCards }) {
+  const trackRef = useRef(null);
+  const cardRefs = useRef([]);
+  const rafRef = useRef(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return undefined;
+
+    function updateActiveIndex() {
+      const trackRect = track.getBoundingClientRect();
+      const viewportCenter = trackRect.left + trackRect.width / 2;
+
+      let bestIndex = 0;
+      let bestDistance = Number.POSITIVE_INFINITY;
+
+      cardRefs.current.forEach((card, index) => {
+        if (!card) return;
+        const rect = card.getBoundingClientRect();
+        const cardCenter = rect.left + rect.width / 2;
+        const distance = Math.abs(cardCenter - viewportCenter);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          bestIndex = index;
+        }
+      });
+
+      setActiveIndex(bestIndex);
+    }
+
+    function handleScroll() {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(updateActiveIndex);
+    }
+
+    updateActiveIndex();
+    track.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => {
+      track.removeEventListener("scroll", handleScroll);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
+
   return (
     <section className="dashboard-carousel" aria-label="Dashboard menu">
-      <div className="dashboard-track">
-        {cards.map((card) => (
+      <div className="dashboard-track" ref={trackRef}>
+        {cards.map((card, index) => (
           <div className="dashboard-slide" key={card.href}>
             <Link
               aria-label={card.label}
-              className="dashboard-card"
+              aria-current={index === activeIndex ? "true" : undefined}
+              className={`dashboard-card ${index === activeIndex ? "is-active" : ""}`}
               href={card.href}
+              ref={(node) => {
+                cardRefs.current[index] = node;
+              }}
             >
               <div className="dashboard-media">
                 <FrameArt variant={card.variant} />
+              </div>
+              <div className="dashboard-caption">
+                <strong className="dashboard-title">{card.label}</strong>
               </div>
             </Link>
           </div>
