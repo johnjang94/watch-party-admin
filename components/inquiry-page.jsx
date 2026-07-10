@@ -39,6 +39,10 @@ function makeSummary(item) {
   return item.question || item.answer || "New support ticket";
 }
 
+function makeReason(item) {
+  return String(item.requestReason ?? "").trim();
+}
+
 function matchesInquiry(item, query) {
   const value = query.trim().toLowerCase();
   if (!value) return true;
@@ -48,6 +52,7 @@ function matchesInquiry(item, query) {
     item.phoneNumber,
     item.question,
     item.answer,
+    item.requestReason,
     item.status,
     item.currentAgent,
     ...(item.thread ?? []).flatMap((line) => [line.message, line.role]),
@@ -232,6 +237,7 @@ export function InquiryPage({ inquiries }) {
           {visibleItems.map((item) => {
             const isOpen = expandedId === item.id;
             const avatar = resolveAvatar(item);
+            const requestReason = makeReason(item);
 
             return (
               <article className={`inquiry-card inquiry-panel ${isOpen ? "is-open" : ""}`} key={item.id}>
@@ -255,6 +261,7 @@ export function InquiryPage({ inquiries }) {
                         <div className="inquiry-copy-text">
                           <p className="inquiry-name">{item.customer}</p>
                           <p className="inquiry-question">{makeSummary(item)}</p>
+                          {requestReason ? <p className="inquiry-reason">Reason: {requestReason}</p> : null}
                         </div>
                       </div>
                     </div>
@@ -292,6 +299,13 @@ export function InquiryPage({ inquiries }) {
                         <div className="inquiry-empty-thread">No thread messages yet.</div>
                       )}
                     </div>
+
+                    {requestReason ? (
+                      <div className="inquiry-reason-panel">
+                        <span className="inquiry-reason-label">Reason</span>
+                        <p>{requestReason}</p>
+                      </div>
+                    ) : null}
 
                     <form
                       className="inquiry-reply-form"

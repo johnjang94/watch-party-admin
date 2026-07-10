@@ -645,6 +645,29 @@ img {
   line-height: 1.5;
 }
 
+.inquiry-reason {
+  margin: 8px 0 0;
+  color: rgba(245, 228, 169, 0.88);
+  line-height: 1.45;
+}
+
+.inquiry-reason-panel {
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(220, 191, 115, 0.08);
+  border: 1px solid rgba(220, 191, 115, 0.14);
+}
+
+.inquiry-reason-label {
+  display: inline-block;
+  margin-bottom: 6px;
+  color: #f5e4a9;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
 .inquiry-chip {
   background: rgba(220, 191, 115, 0.12);
   color: #f5e4a9;
