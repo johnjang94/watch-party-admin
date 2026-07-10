@@ -2389,18 +2389,18 @@ img {
   }
 
   .overview-page .dashboard-track {
-    grid-auto-columns: min(86%, 320px);
+    grid-auto-columns: min(96vw, 620px);
     gap: 12px;
-    padding: 14px 12px 18px;
+    padding: 8px 8px 12px;
   }
 
   .overview-page .dashboard-card {
-    padding: 9px;
-    aspect-ratio: 0.9 / 1.16;
+    padding: 5px;
+    aspect-ratio: 0.82 / 1.34;
   }
 
   .overview-page .dashboard-title {
-    font-size: 1.32rem;
+    font-size: 1.48rem;
   }
 
   .collection-card,
@@ -2701,9 +2701,9 @@ img {
 }
 
 .overview-page .dashboard-track {
-  grid-auto-columns: min(92%, 640px);
-  gap: 18px;
-  padding: 16px max(5vw, 14px) 22px;
+  grid-auto-columns: min(96vw, 760px);
+  gap: 12px;
+  padding: 8px max(4vw, 10px) 14px;
 }
 
 .overview-page .dashboard-slide {
@@ -2718,22 +2718,22 @@ img {
   opacity: 1;
   transform: translateY(8px) scale(0.975);
   filter: saturate(0.86) contrast(0.96);
-  padding: 14px;
+  padding: 5px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015)),
-    linear-gradient(180deg, rgba(5, 8, 12, 0.96), rgba(4, 6, 10, 0.9));
-  border: 1px solid rgba(255, 255, 255, 0.08);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01)),
+    linear-gradient(180deg, rgba(5, 8, 12, 0.96), rgba(4, 6, 10, 0.92));
+  border: 5px solid rgba(220, 191, 115, 0.18);
   box-shadow:
-    0 28px 74px rgba(0, 0, 0, 0.42),
+    0 26px 66px rgba(0, 0, 0, 0.4),
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .overview-page .dashboard-card.is-active {
   opacity: 1;
-  transform: translateY(-2px) scale(1.04);
-  border-color: rgba(246, 209, 93, 0.34);
+  transform: translateY(-2px) scale(1.02);
+  border-color: rgba(246, 209, 93, 0.38);
   box-shadow:
-    0 40px 110px rgba(0, 0, 0, 0.62),
+    0 40px 100px rgba(0, 0, 0, 0.58),
     0 0 0 1px rgba(246, 209, 93, 0.12),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
   filter: saturate(1.02) contrast(1);
@@ -2741,9 +2741,11 @@ img {
 
 .overview-page .dashboard-media {
   position: relative;
-  overflow: hidden;
+  height: 100%;
   min-height: 0;
-  border-radius: 26px;
+  aspect-ratio: auto;
+  overflow: hidden;
+  border-radius: 20px;
   background:
     radial-gradient(circle at 50% 20%, rgba(220, 191, 115, 0.14), transparent 34%),
     linear-gradient(180deg, rgba(126, 77, 214, 0.12), rgba(7, 11, 16, 0.72));
@@ -2782,7 +2784,7 @@ img {
 
 .overview-page .dashboard-badge {
   left: 50%;
-  top: 14px;
+  top: 10px;
   transform: translateX(-50%);
   background: rgba(6, 8, 10, 0.62);
   border-color: rgba(255, 255, 255, 0.16);
@@ -2813,19 +2815,19 @@ img {
   }
 
   .overview-page .dashboard-track {
-    grid-auto-columns: min(94%, 380px);
+    grid-auto-columns: min(96vw, 620px);
     gap: 10px;
     width: 100%;
-    padding: 12px 10px 16px;
+    padding: 8px 8px 12px;
   }
 
   .overview-page .dashboard-card {
-    aspect-ratio: 0.96 / 1.2;
-    padding: 10px;
+    aspect-ratio: 0.82 / 1.34;
+    padding: 5px;
   }
 
   .overview-page .dashboard-badge {
-    top: 12px;
+    top: 10px;
     font-size: 0.64rem;
   }
 
@@ -2843,12 +2845,12 @@ img {
   }
 
   .overview-page .dashboard-track {
-    grid-auto-columns: min(92%, 640px);
-    width: min(100%, 1240px);
+    grid-auto-columns: min(96vw, 760px);
+    width: min(100%, 1440px);
   }
 
   .overview-page .dashboard-card {
-    aspect-ratio: 0.94 / 1.22;
+    aspect-ratio: 0.88 / 1.34;
   }
 }
 
@@ -2858,55 +2860,6 @@ img {
 
 .collection-shell {
   gap: 18px;
-}
-
-.overview-page .dashboard-carousel {
-  padding-bottom: 0;
-}
-
-.overview-page .dashboard-track {
-  grid-auto-columns: min(92%, 640px);
-  gap: 18px;
-  padding: 16px max(5vw, 14px) 22px;
-}
-
-.overview-page .dashboard-card {
-  display: grid;
-  grid-template-rows: minmax(0, 1fr);
-  aspect-ratio: 0.94 / 1.22;
-  padding: 14px;
-  transform: translateY(8px) scale(0.975);
-  filter: saturate(0.86) contrast(0.96);
-  box-shadow:
-    0 34px 86px rgba(0, 0, 0, 0.44),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
-}
-
-.overview-page .dashboard-card.is-active {
-  transform: translateY(-2px) scale(1.04);
-  border-color: rgba(246, 209, 93, 0.34);
-  box-shadow:
-    0 46px 120px rgba(0, 0, 0, 0.64),
-    0 0 0 1px rgba(246, 209, 93, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-}
-
-.overview-page .dashboard-caption {
-  display: none;
-}
-
-.overview-page .dashboard-badge {
-  left: 50%;
-  top: 14px;
-  transform: translateX(-50%);
-  background: rgba(6, 8, 10, 0.62);
-  border-color: rgba(255, 255, 255, 0.16);
-  font-size: 0.7rem;
-  letter-spacing: 0.22em;
-}
-
-.overview-page .dashboard-media {
-  border-radius: 26px;
 }
 
 .collection-shell {
@@ -3038,15 +2991,15 @@ img {
 
 @media (max-width: 640px) {
   .overview-page .dashboard-track {
-    grid-auto-columns: min(90%, 460px);
-    gap: 16px;
+    grid-auto-columns: min(96vw, 620px);
+    gap: 10px;
     width: 100%;
-    padding: 16px 16px 22px;
+    padding: 8px 8px 12px;
   }
 
   .overview-page .dashboard-card {
-    aspect-ratio: 0.88 / 1.18;
-    padding: 11px;
+    aspect-ratio: 0.82 / 1.34;
+    padding: 5px;
   }
 
   .overview-page .dashboard-title {

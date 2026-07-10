@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 
+const apiBaseUrl = process.env.NEXT_PUBLIC_CONTROL_URL ?? "https://fifa-control.onrender.com";
+
 function formatValue(value) {
   if (!value) return "Unavailable";
   const date = new Date(value);
@@ -24,7 +26,13 @@ function normalizeAvatarSource(raw) {
       ? raw.trim()
       : typeof raw?.src === "string"
         ? raw.src.trim()
-        : null;
+        : typeof raw?.url === "string"
+          ? raw.url.trim()
+          : typeof raw?.path === "string"
+            ? raw.path.trim()
+            : typeof raw?.value === "string"
+              ? raw.value.trim()
+              : null;
 
   if (!value) return null;
 
@@ -32,21 +40,38 @@ function normalizeAvatarSource(raw) {
     value.startsWith("http://") ||
     value.startsWith("https://") ||
     value.startsWith("data:") ||
-    value.startsWith("blob:") ||
-    value.startsWith("/")
+    value.startsWith("blob:")
   ) {
     return value;
   }
 
-  return null;
+  try {
+    return new URL(value, apiBaseUrl).toString();
+  } catch {
+    return value.startsWith("/") ? value : `/${value}`;
+  }
 }
 
 function resolveAvatar(user) {
-  return (
-    normalizeAvatarSource(user.avatarUrl) ??
-    normalizeAvatarSource(user.profilePhotoUrl) ??
-    normalizeAvatarSource(user.avatar)
-  );
+  const candidates = [
+    user.profilePhotoUrl,
+    user.avatarUrl,
+    user.profilePhoto,
+    user.avatar,
+    user.photoUrl,
+    user.photo,
+    user.avatarPath,
+    user.picture,
+  ];
+
+  for (const candidate of candidates) {
+    const normalized = normalizeAvatarSource(candidate);
+    if (normalized) {
+      return normalized;
+    }
+  }
+
+  return null;
 }
 
 function initialsFor(user) {

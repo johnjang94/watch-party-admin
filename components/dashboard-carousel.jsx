@@ -71,7 +71,7 @@ function CardMedia({ card }) {
           className="dashboard-photo"
           fill
           priority={card.priority}
-          sizes="(max-width: 640px) 88vw, 520px"
+          sizes="(max-width: 640px) 96vw, (max-width: 1024px) 78vw, 720px"
           src={card.src}
         />
       </div>
