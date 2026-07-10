@@ -13,6 +13,12 @@ function readImageFile(file) {
   });
 }
 
+function formatDisplayName(session) {
+  const firstName = typeof session?.firstName === "string" ? session.firstName.trim() : "";
+  const lastName = typeof session?.lastName === "string" ? session.lastName.trim() : "";
+  return [firstName, lastName].filter(Boolean).join(" ") || "John Jang";
+}
+
 export default function ProfilePage() {
   const router = useRouter();
   const [displayName, setDisplayName] = useState("John Jang");
@@ -25,7 +31,7 @@ export default function ProfilePage() {
     if (sessionRaw) {
       try {
         const session = JSON.parse(sessionRaw);
-        if (session?.firstName) setDisplayName(session.firstName);
+        setDisplayName(formatDisplayName(session));
         if (session?.phoneNumber) setPhoneNumber(session.phoneNumber);
       } catch {
         // ignore parse errors and use defaults

@@ -7,6 +7,7 @@ import { authenticateAdmin } from "../lib/admin-api";
 export default function HomePage() {
   const router = useRouter();
   const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -17,12 +18,13 @@ export default function HomePage() {
     setError("");
 
     try {
-      if (!firstName.trim() || !phoneNumber.trim()) {
-        throw new Error("Please enter your name and phone number.");
+      if (!firstName.trim() || !lastName.trim() || !phoneNumber.trim()) {
+        throw new Error("Please enter your first name, last name, and phone number.");
       }
 
       const session = await authenticateAdmin({
         firstName: firstName.trim(),
+        lastName: lastName.trim(),
         phoneNumber: phoneNumber.trim(),
       });
 
@@ -45,12 +47,21 @@ export default function HomePage() {
 
         <form className="auth-panel" onSubmit={handleSubmit}>
           <input
-            aria-label="Full name"
+            aria-label="First name"
             className="field-input"
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
-            placeholder="Your full name"
+            placeholder="Your first name"
             autoComplete="given-name"
+          />
+
+          <input
+            aria-label="Last name"
+            className="field-input"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            placeholder="Your last name"
+            autoComplete="family-name"
           />
 
           <input
