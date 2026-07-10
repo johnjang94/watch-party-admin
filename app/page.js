@@ -1,11 +1,14 @@
 "use client";
 
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import heroImage from "../image.png";
 import { authenticateAdmin } from "../lib/admin-api";
 
 export default function HomePage() {
   const router = useRouter();
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -28,8 +31,8 @@ export default function HomePage() {
         phoneNumber: phoneNumber.trim(),
       });
 
-      localStorage.setItem("watch-party-admin-session", JSON.stringify(session));
-      localStorage.setItem("watch-party-admin-last-active-at", String(Date.now()));
+      window.localStorage.setItem("watch-party-admin-session", JSON.stringify(session));
+      window.localStorage.setItem("watch-party-admin-last-active-at", String(Date.now()));
       router.replace("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Authentication failed.");
@@ -39,48 +42,85 @@ export default function HomePage() {
   }
 
   return (
-    <main className="page-root auth-page">
-      <section className="auth-card">
-        <div className="hero-media" aria-hidden="true">
-          <div className="hero-overlay" />
+    <main className="page-root home-page">
+      <section className="hero-stage">
+        <div className="page-background" aria-hidden="true">
+          <Image
+            alt=""
+            className="page-background-image"
+            fill
+            priority
+            sizes="100vw"
+            src={heroImage}
+          />
+          <div className="page-background-overlay" />
         </div>
 
-        <form className="auth-panel" onSubmit={handleSubmit}>
-          <div className="name-row">
-            <input
-              aria-label="First name"
-              className="field-input"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              placeholder="First name"
-              autoComplete="given-name"
-            />
+        <div className="hero-content">
+          <div className="cta-band">
+            <div className="login-copy">
+              <p className="eyebrow">watch party admin</p>
+              <h1 className="hero-title">enter the admin lounge</h1>
+              <p className="hero-description">Use your name and phone number to sign in.</p>
+            </div>
 
-            <input
-              aria-label="Last name"
-              className="field-input"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              placeholder="Last name"
-              autoComplete="family-name"
-            />
+            <div className={`auth-switch ${isLoginOpen ? "is-open" : ""}`}>
+              <div className="auth-state auth-state-login" aria-hidden={isLoginOpen}>
+                <button className="login-button" onClick={() => setIsLoginOpen(true)} type="button">
+                  login
+                </button>
+              </div>
+
+              <form className="auth-state auth-state-form login-panel" onSubmit={handleSubmit}>
+                <div className="name-row">
+                  <label className="login-field">
+                    <span>first name</span>
+                    <input
+                      autoComplete="given-name"
+                      onChange={(event) => setFirstName(event.target.value)}
+                      placeholder="First name"
+                      type="text"
+                      value={firstName}
+                    />
+                  </label>
+
+                  <label className="login-field">
+                    <span>last name</span>
+                    <input
+                      autoComplete="family-name"
+                      onChange={(event) => setLastName(event.target.value)}
+                      placeholder="Last name"
+                      type="text"
+                      value={lastName}
+                    />
+                  </label>
+                </div>
+
+                <label className="login-field">
+                  <span>phone number</span>
+                  <input
+                    autoComplete="tel"
+                    inputMode="tel"
+                    onChange={(event) => setPhoneNumber(event.target.value)}
+                    placeholder="Enter phone number"
+                    type="tel"
+                    value={phoneNumber}
+                  />
+                </label>
+
+                {error ? (
+                  <p className="error-text login-error" role="alert">
+                    {error}
+                  </p>
+                ) : null}
+
+                <button className="login-submit" disabled={isSubmitting} type="submit">
+                  {isSubmitting ? "authenticating..." : "enter the party"}
+                </button>
+              </form>
+            </div>
           </div>
-
-          <input
-            aria-label="Phone number"
-            className="field-input"
-            value={phoneNumber}
-            onChange={(e) => setPhoneNumber(e.target.value)}
-            placeholder="Phone number"
-            autoComplete="tel"
-            inputMode="tel"
-          />
-
-          {error ? <p className="error-text">{error}</p> : null}
-          <button className="primary-button" type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "AUTHENTICATING..." : "LOGIN"}
-          </button>
-        </form>
+        </div>
       </section>
     </main>
   );
