@@ -239,6 +239,9 @@ export function AdminDashboard() {
                   {invite.firstName} {invite.lastName}
                 </strong>
                 <span>{invite.phoneNumber}</span>
+                <span className="status-chip is-muted invite-rsvp-chip">
+                  RSVP: {invite.rsvp || "Going"}
+                </span>
               </div>
               <time dateTime={invite.createdAt}>
                 {new Date(invite.createdAt).toLocaleString()}

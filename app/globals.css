@@ -505,6 +505,13 @@ img {
   align-items: center;
 }
 
+.roster-chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .roster-name {
   font-size: 1rem;
   letter-spacing: 0.02em;
@@ -527,6 +534,10 @@ img {
 
 .roster-meta dt {
   color: rgba(234, 243, 238, 0.46);
+}
+
+.invite-rsvp-chip {
+  margin-top: 6px;
 }
 
 .roster-meta dd {

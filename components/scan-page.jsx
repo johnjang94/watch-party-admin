@@ -20,6 +20,10 @@ function initialsFor(user) {
   return `${String(user?.firstName ?? "").charAt(0)}${String(user?.lastName ?? "").charAt(0)}`.trim() || "U";
 }
 
+function resolveRsvp(user) {
+  return String(user?.rsvp ?? user?.attendance ?? user?.status ?? "Going");
+}
+
 export function ScanPage() {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
@@ -141,7 +145,7 @@ export function ScanPage() {
   }, [supportsScan]);
 
   const guestName = activeGuest ? `${activeGuest.firstName ?? ""} ${activeGuest.lastName ?? ""}`.trim() : "";
-  const guestStatus = activeGuest?.attendance || activeGuest?.status || "Attendance confirmed";
+  const guestStatus = resolveRsvp(activeGuest);
   const guestPhoto = activeGuest?.profilePhotoUrl || activeGuest?.avatar || null;
 
   return (
@@ -167,7 +171,7 @@ export function ScanPage() {
 
               <div className="scan-modal-copy">
                 <strong className="scan-modal-name">{guestName}</strong>
-                <p className="scan-modal-line">{guestStatus}</p>
+                <p className="scan-modal-line">RSVP: {guestStatus}</p>
                 <p className="scan-modal-line">{activeGuest.phoneNumber || "Unavailable"}</p>
                 <p className="scan-modal-line">{formatValue(activeGuest.registeredAt ?? activeGuest.createdAt)}</p>
                 <button className="primary-button scan-modal-button" type="button" onClick={closeGuestCard}>

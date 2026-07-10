@@ -29,6 +29,10 @@ function initialsFor(user) {
   return `${String(user.firstName ?? "").charAt(0)}${String(user.lastName ?? "").charAt(0)}`.trim() || "U";
 }
 
+function resolveRsvp(user) {
+  return String(user.rsvp ?? user.attendance ?? "Going");
+}
+
 export function UserListPage({ title, subtitle, users }) {
   const hasUsers = users.length > 0;
 
@@ -73,7 +77,10 @@ export function UserListPage({ title, subtitle, users }) {
                     <strong className="user-name roster-name">
                       {user.firstName} {user.lastName}
                     </strong>
-                    <span className="status-chip roster-chip">{user.attendance || "guest"}</span>
+                    <div className="roster-chip-group">
+                      <span className="status-chip roster-chip">{user.attendance || "guest"}</span>
+                      <span className="status-chip roster-chip is-muted">{resolveRsvp(user)}</span>
+                    </div>
                   </div>
 
                   <dl className="user-meta roster-meta">
@@ -88,6 +95,10 @@ export function UserListPage({ title, subtitle, users }) {
                     <div>
                       <dt>Check-in</dt>
                       <dd>{formatValue(user.enteredAt ?? user.deviceTrackedAt)}</dd>
+                    </div>
+                    <div>
+                      <dt>RSVP</dt>
+                      <dd>{resolveRsvp(user)}</dd>
                     </div>
                   </dl>
                 </div>
