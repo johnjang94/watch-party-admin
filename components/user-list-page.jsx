@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_CONTROL_URL ?? "https://fifa-control.onrender.com";
 
@@ -90,6 +89,29 @@ function hasSurveyAnswers(user) {
   );
 }
 
+function matchesUser(user, query) {
+  const value = query.trim().toLowerCase();
+  if (!value) return true;
+
+  const fields = [
+    user.firstName,
+    user.lastName,
+    user.phoneNumber,
+    user.attendance,
+    user.rsvp,
+    user.registeredAt,
+    user.createdAt,
+    user.survey?.howDidYouKnow,
+    user.survey?.referredBy,
+    user.survey?.dietaryRestrictions,
+    user.survey?.resident,
+  ]
+    .filter(Boolean)
+    .map((entry) => String(entry).toLowerCase());
+
+  return fields.some((entry) => entry.includes(value));
+}
+
 function UserAvatar({ user, className, fallbackClassName }) {
   const avatar = resolveAvatar(user);
 
@@ -101,90 +123,6 @@ function UserAvatar({ user, className, fallbackClassName }) {
     <div className={fallbackClassName} aria-hidden="true">
       {initialsFor(user)}
     </div>
-  );
-}
-
-function OldListView({ title, users }) {
-  const hasUsers = users.length > 0;
-
-  return (
-    <main className="page-root detail-page roster-page collection-page">
-      <section className="screen-shell list-shell roster-shell collection-shell">
-        <header className="screen-topbar roster-topbar collection-topbar">
-          <Link className="back-link roster-back" href="/dashboard">
-            back
-          </Link>
-          <div className="screen-heading roster-heading collection-heading">
-            <h1 className="screen-title">{title}</h1>
-          </div>
-          <p className="new-summary">{hasUsers ? `${users.length} guests` : "No guests yet"}</p>
-        </header>
-
-        {hasUsers ? (
-          <div className="user-list roster-grid">
-            {users.map((user) => (
-              <article className="user-card roster-card collection-card" key={user.id}>
-                <div className="user-avatar-frame roster-avatar-frame collection-avatar-frame">
-                  <UserAvatar
-                    className="user-avatar"
-                    fallbackClassName="user-avatar-fallback"
-                    user={user}
-                  />
-                </div>
-
-                <div className="user-body roster-body">
-                  <div className="user-title-row roster-title-row collection-title-row">
-                    <strong className="user-name roster-name">
-                      {user.firstName} {user.lastName}
-                    </strong>
-                  </div>
-
-                  <dl className="user-meta roster-meta collection-meta">
-                    <div>
-                      <dt>Phone</dt>
-                      <dd>{user.phoneNumber}</dd>
-                    </div>
-                    <div>
-                      <dt>Joined</dt>
-                      <dd>{formatValue(user.registeredAt ?? user.createdAt)}</dd>
-                    </div>
-                  </dl>
-
-                  {hasSurveyAnswers(user) ? (
-                    <div className="user-survey">
-                      <strong className="user-survey-title">Survey</strong>
-                      <dl className="user-meta survey-meta">
-                        <div>
-                          <dt>Heard from</dt>
-                          <dd>{user.survey?.howDidYouKnow || "Unavailable"}</dd>
-                        </div>
-                        <div>
-                          <dt>Referred by</dt>
-                          <dd>{user.survey?.referredBy || "n/a"}</dd>
-                        </div>
-                        <div>
-                          <dt>Dietary</dt>
-                          <dd>{user.survey?.dietaryRestrictions || "n/a"}</dd>
-                        </div>
-                        <div>
-                          <dt>Resident</dt>
-                          <dd>{user.survey?.resident || "n/a"}</dd>
-                        </div>
-                      </dl>
-                    </div>
-                  ) : null}
-                </div>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <div className="roster-empty">
-            <strong>No guests yet.</strong>
-            <p>The list will populate as soon as the backend returns registrations.</p>
-          </div>
-        )}
-      </section>
-    </main>
   );
 }
 
@@ -320,10 +258,106 @@ function NewListView({ title, users }) {
   );
 }
 
+function AllListView({ title, users }) {
+  const hasUsers = users.length > 0;
+  const [selectedId, setSelectedId] = useState("");
+  const [query, setQuery] = useState("");
+
+  const visibleUsers = useMemo(
+    () => users.filter((user) => matchesUser(user, query)),
+    [query, users],
+  );
+
+  const resolvedSelectedId =
+    visibleUsers.some((user) => user.id === selectedId) ? selectedId : visibleUsers[0]?.id ?? "";
+  const selectedUser = visibleUsers.find((user) => user.id === resolvedSelectedId) ?? null;
+  const hasResults = visibleUsers.length > 0;
+
+  return (
+    <main className="page-root detail-page all-page">
+      <section className="screen-shell all-shell">
+        <header className="new-topbar all-topbar">
+          <div className="screen-heading new-heading all-heading">
+            <p className="eyebrow">all</p>
+            <h1 className="screen-title">{title}</h1>
+          </div>
+        </header>
+
+        <div className="all-toolbar">
+          <p className="all-count">{hasUsers ? `${visibleUsers.length} guests` : "No guests yet"}</p>
+
+          <label className="all-search-field">
+            <span>Search guests</span>
+            <input
+              className="field-input all-search-input"
+              placeholder="Search name, phone, or survey"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </label>
+        </div>
+
+        {hasResults ? (
+          <div className="new-layout">
+            <section className="new-list-card" aria-label="All guest list">
+              <div className="new-list">
+                {visibleUsers.map((user) => {
+                  const isActive = resolvedSelectedId === user.id;
+
+                  return (
+                    <button
+                      className={`new-list-item ${isActive ? "is-active" : ""}`}
+                      key={user.id}
+                      type="button"
+                      onClick={() =>
+                        setSelectedId((current) => (current === user.id ? "" : user.id))
+                      }
+                    >
+                      <div className="new-list-avatar">
+                        <UserAvatar
+                          className="new-list-photo"
+                          fallbackClassName="new-list-fallback"
+                          user={user}
+                        />
+                      </div>
+
+                      <div className="new-list-copy">
+                        <strong className="new-list-name">
+                          {user.firstName} {user.lastName}
+                        </strong>
+                        <span className="new-list-meta">{user.phoneNumber || "Unavailable"}</span>
+                      </div>
+
+                      <span className="new-list-arrow" aria-hidden="true">
+                        →
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            {selectedUser ? <NewDetailCard user={selectedUser} /> : null}
+          </div>
+        ) : (
+          <div className="roster-empty new-empty">
+            <strong>{hasUsers ? "No guests matched your search." : "No guests yet."}</strong>
+            <p>
+              {hasUsers
+                ? "Try a different name, phone number, or survey keyword."
+                : "The list will populate as soon as the backend returns registrations."}
+            </p>
+          </div>
+        )}
+      </section>
+    </main>
+  );
+}
+
 export function UserListPage({ title, users, variant = "all" }) {
   if (variant === "new") {
     return <NewListView title={title} users={users} />;
   }
 
-  return <OldListView title={title} users={users} />;
+  return <AllListView title={title} users={users} />;
 }

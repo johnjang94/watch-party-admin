@@ -5,29 +5,7 @@ import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import selfieImage from "../selfie.jpg";
 import communityImage from "../community.jpg";
-
-function ChatArt() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 160 160" className="dashboard-art">
-      <rect width="160" height="160" rx="28" fill="#090814" />
-      <path
-        d="M36 46h88c8 0 14 6 14 14v38c0 8-6 14-14 14H77l-21 18v-18H36c-8 0-14-6-14-14V60c0-8 6-14 14-14Z"
-        fill="rgba(255,255,255,0.08)"
-      />
-      <path d="M50 64h60" stroke="#f4fff8" strokeLinecap="round" strokeWidth="6" opacity="0.92" />
-      <path d="M50 82h42" stroke="#f4fff8" strokeLinecap="round" strokeWidth="6" opacity="0.72" />
-      <path d="M50 100h50" stroke="#f4fff8" strokeLinecap="round" strokeWidth="6" opacity="0.56" />
-      <circle cx="122" cy="122" r="15" fill="rgba(119,231,160,0.22)" />
-      <circle cx="122" cy="122" r="6" fill="#f6d15d" opacity="0.95" />
-      <path
-        d="M30 26h100c2.8 0 5 2.2 5 5v98c0 2.8-2.2 5-5 5H30c-2.8 0-5-2.2-5-5V31c0-2.8 2.2-5 5-5Z"
-        fill="none"
-        stroke="rgba(255,255,255,0.08)"
-        strokeWidth="2"
-      />
-    </svg>
-  );
-}
+import helpImage from "../HELP.webp";
 
 function ProfileArt() {
   const glowId = useId();
@@ -78,14 +56,6 @@ function CardMedia({ card }) {
     );
   }
 
-  if (card.kind === "chat") {
-    return (
-      <div className="dashboard-icon-frame">
-        <ChatArt />
-      </div>
-    );
-  }
-
   return (
     <div className="dashboard-icon-frame">
       <ProfileArt />
@@ -111,8 +81,10 @@ const defaultCards = [
   },
   {
     href: "/inquiry",
-    kind: "chat",
+    kind: "photo",
     label: "inquiry",
+    src: helpImage,
+    alt: "Help illustration for the inquiry dashboard",
   },
 ];
 
