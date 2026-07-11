@@ -88,6 +88,10 @@ function normalizeAvatarSource(raw) {
     return `https:${value}`;
   }
 
+  if (value.startsWith("/_next/") || value.startsWith("/image") || value.startsWith("/public/")) {
+    return value;
+  }
+
   if (
     value.startsWith("firebasestorage.googleapis.com/") ||
     value.startsWith("storage.googleapis.com/")
@@ -106,38 +110,65 @@ function normalizeAvatarSource(raw) {
   }
 }
 
-function resolveAvatar(user) {
-  const candidates = [
-    user.profilePhotoUrl,
-    user.profilePhoto,
-    user.avatarUrl,
-    user.profilePhoto,
-    user.avatar,
-    user.photoUrl,
-    user.photo,
-    user.avatarPath,
-    user.picture,
-    user.customerPhotoUrl,
-  ];
+function buildAvatarCandidates(user) {
+  const seen = new Set();
+  const candidates = [];
 
-  for (const candidate of candidates) {
-    const normalized = normalizeAvatarSource(candidate);
-    if (normalized) {
-      return normalized;
+  function addCandidate(value) {
+    const normalized = normalizeAvatarSource(value);
+    if (!normalized || seen.has(normalized)) {
+      return;
     }
+
+    seen.add(normalized);
+    candidates.push(normalized);
   }
 
-  return null;
+  addCandidate(user.profilePhotoUrl);
+  addCandidate(user.profilePhoto?.url);
+  addCandidate(user.profilePhoto);
+  addCandidate(user.avatarUrl);
+  addCandidate(user.avatar?.url);
+  addCandidate(user.avatar);
+  addCandidate(user.photoUrl);
+  addCandidate(user.photo);
+  addCandidate(user.avatarPath);
+  addCandidate(user.picture);
+  addCandidate(user.customerPhotoUrl);
+
+  return candidates;
 }
 
-function AvatarImage({ alt, className, fallbackClassName, fallbackText, src }) {
+function AvatarImage({
+  alt,
+  className,
+  fallbackClassName,
+  fallbackText,
+  src,
+  srcCandidates = [],
+}) {
   const [failed, setFailed] = useState(false);
+  const [index, setIndex] = useState(0);
+
+  const candidates = useMemo(() => {
+    const list = [];
+    for (const candidate of [src, ...srcCandidates]) {
+      const normalized = normalizeAvatarSource(candidate);
+      if (normalized && !list.includes(normalized)) {
+        list.push(normalized);
+      }
+    }
+    return list;
+  }, [src, srcCandidates]);
 
   useEffect(() => {
     setFailed(false);
-  }, [src]);
+    setIndex(0);
+  }, [candidates]);
 
-  if (!src || failed) {
+  const currentSrc = candidates[index] ?? null;
+
+  if (!currentSrc || failed) {
     return (
       <div className={fallbackClassName} aria-hidden="true">
         {fallbackText}
@@ -145,7 +176,24 @@ function AvatarImage({ alt, className, fallbackClassName, fallbackText, src }) {
     );
   }
 
-  return <img alt={alt} className={className} src={src} onError={() => setFailed(true)} />;
+  return (
+    <img
+      alt={alt}
+      className={className}
+      src={currentSrc}
+      onError={() => {
+        setIndex((current) => {
+          const next = current + 1;
+          if (next < candidates.length) {
+            return next;
+          }
+
+          setFailed(true);
+          return current;
+        });
+      }}
+    />
+  );
 }
 
 function initialsFor(user) {
@@ -188,7 +236,8 @@ function matchesUser(user, query) {
 }
 
 function UserAvatar({ user, className, fallbackClassName }) {
-  const avatar = resolveAvatar(user);
+  const avatarCandidates = useMemo(() => buildAvatarCandidates(user), [user]);
+  const secondaryCandidates = useMemo(() => avatarCandidates.slice(1), [avatarCandidates]);
 
   return (
     <AvatarImage
@@ -196,12 +245,15 @@ function UserAvatar({ user, className, fallbackClassName }) {
       className={className}
       fallbackClassName={fallbackClassName}
       fallbackText={initialsFor(user)}
-      src={avatar}
+      src={avatarCandidates[0] ?? null}
+      srcCandidates={secondaryCandidates}
     />
   );
 }
 
 function NewDetailCard({ user }) {
+  const avatarCandidates = useMemo(() => buildAvatarCandidates(user), [user]);
+
   return (
     <article className="new-detail-card">
       <div className="new-detail-hero">
@@ -210,7 +262,7 @@ function NewDetailCard({ user }) {
           className="new-detail-photo"
           fallbackClassName="new-detail-fallback"
           fallbackText={initialsFor(user)}
-          src={resolveAvatar(user)}
+          srcCandidates={avatarCandidates}
         />
       </div>
 
@@ -355,9 +407,6 @@ function AllListView({ title, users }) {
     [query, users],
   );
 
-  const resolvedSelectedId =
-    visibleUsers.some((user) => user.id === selectedId) ? selectedId : visibleUsers[0]?.id ?? "";
-  const selectedUser = visibleUsers.find((user) => user.id === resolvedSelectedId) ?? null;
   const hasResults = visibleUsers.length > 0;
 
   return (
@@ -387,42 +436,19 @@ function AllListView({ title, users }) {
             <section className="new-list-card" aria-label="All guest list">
               <div className="new-list">
                 {visibleUsers.map((user) => {
-                  const isActive = resolvedSelectedId === user.id;
-
                   return (
-                    <button
-                      className={`new-list-item ${isActive ? "is-active" : ""}`}
+                    <ExpandableUserCard
+                      isOpen={selectedId === user.id}
                       key={user.id}
-                      type="button"
-                      onClick={() =>
+                      onToggle={() =>
                         setSelectedId((current) => (current === user.id ? "" : user.id))
                       }
-                    >
-                      <div className="new-list-avatar">
-                        <UserAvatar
-                          className="new-list-photo"
-                          fallbackClassName="new-list-fallback"
-                          user={user}
-                        />
-                      </div>
-
-                      <div className="new-list-copy">
-                        <strong className="new-list-name">
-                          {user.firstName} {user.lastName}
-                        </strong>
-                        <span className="new-list-meta">{user.phoneNumber || "Unavailable"}</span>
-                      </div>
-
-                      <span className="new-list-arrow" aria-hidden="true">
-                        →
-                      </span>
-                    </button>
+                      user={user}
+                    />
                   );
                 })}
               </div>
             </section>
-
-            {selectedUser ? <NewDetailCard user={selectedUser} /> : null}
           </div>
         ) : (
           <div className="roster-empty new-empty">
