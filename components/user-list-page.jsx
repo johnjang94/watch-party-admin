@@ -117,6 +117,7 @@ function OldListView({ title, users }) {
           <div className="screen-heading roster-heading collection-heading">
             <h1 className="screen-title">{title}</h1>
           </div>
+          <p className="new-summary">{hasUsers ? `${users.length} guests` : "No guests yet"}</p>
         </header>
 
         {hasUsers ? (

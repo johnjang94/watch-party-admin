@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { fetchInviteSettings, updateInviteCapacity } from "../../lib/admin-api";
 
 function readImageFile(file) {
   return new Promise((resolve, reject) => {
@@ -21,6 +22,13 @@ function formatDisplayName(session) {
 
 export default function ProfilePage() {
   const router = useRouter();
+  const [adminKey, setAdminKey] = useState(() => {
+    if (typeof window === "undefined") {
+      return "";
+    }
+
+    return window.localStorage.getItem("fifa-admin-access-key") || "";
+  });
   const [displayName] = useState(() => {
     if (typeof window === "undefined") {
       return "John Jang";
@@ -37,6 +45,11 @@ export default function ProfilePage() {
       return "John Jang";
     }
   });
+  const [capacity, setCapacity] = useState("");
+  const [capacityUpdatedAt, setCapacityUpdatedAt] = useState("");
+  const [capacitySaving, setCapacitySaving] = useState(false);
+  const [capacityError, setCapacityError] = useState("");
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState(() => {
     if (typeof window === "undefined") {
       return "647-553-3499";
@@ -62,6 +75,39 @@ export default function ProfilePage() {
     return window.localStorage.getItem("watch-party-admin-photo") || "";
   });
 
+  useEffect(() => {
+    if (!adminKey) {
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    async function loadSettings() {
+      try {
+        const data = await fetchInviteSettings(adminKey);
+        if (cancelled || !data.ok) {
+          return;
+        }
+
+        setCapacity(
+          data.capacity === null || data.capacity === undefined ? "" : String(data.capacity),
+        );
+        setCapacityUpdatedAt(data.updatedAt ?? "");
+        setSettingsLoaded(true);
+      } catch (error) {
+        if (!cancelled) {
+          setCapacityError(error instanceof Error ? error.message : "Unable to load capacity.");
+        }
+      }
+    }
+
+    void loadSettings();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [adminKey]);
+
   async function handlePhotoChange(event) {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -69,6 +115,39 @@ export default function ProfilePage() {
     const dataUrl = await readImageFile(file);
     setPhoto(dataUrl);
     window.localStorage.setItem("watch-party-admin-photo", dataUrl);
+  }
+
+  function handleAdminKeyChange(event) {
+    const nextValue = event.target.value;
+    setAdminKey(nextValue);
+
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("fifa-admin-access-key", nextValue);
+    }
+  }
+
+  async function handleSaveCapacity() {
+    setCapacitySaving(true);
+    setCapacityError("");
+
+    try {
+      const payload = capacity.trim() === "" ? null : Number(capacity);
+      const data = await updateInviteCapacity(adminKey, payload);
+
+      if (!data.ok) {
+        throw new Error(data.error ?? "Unable to update capacity.");
+      }
+
+      setCapacity(
+        data.capacity === null || data.capacity === undefined ? "" : String(data.capacity),
+      );
+      setCapacityUpdatedAt(data.updatedAt ?? "");
+      setSettingsLoaded(true);
+    } catch (error) {
+      setCapacityError(error instanceof Error ? error.message : "Unable to update capacity.");
+    } finally {
+      setCapacitySaving(false);
+    }
   }
 
   function handleLogout() {
@@ -107,6 +186,45 @@ export default function ProfilePage() {
           <button className="secondary-button" type="button" onClick={handleLogout}>
             Logout
           </button>
+        </div>
+
+        <div className="profile-card">
+          <label className="profile-capacity-field">
+            <span>Admin access key</span>
+            <input
+              onChange={handleAdminKeyChange}
+              placeholder="Enter your admin key"
+              value={adminKey}
+            />
+          </label>
+
+          <label className="profile-capacity-field">
+            <span>Invite capacity</span>
+            <input
+              inputMode="numeric"
+              onChange={(event) => setCapacity(event.target.value)}
+              placeholder="Leave blank for unlimited"
+              value={capacity}
+            />
+          </label>
+
+          <button
+            className="secondary-button"
+            disabled={capacitySaving || !adminKey}
+            type="button"
+            onClick={() => void handleSaveCapacity()}
+          >
+            {capacitySaving ? "Saving..." : "Save capacity"}
+          </button>
+
+          <p className="profile-meta">
+            {settingsLoaded && capacity !== "" ? `Capacity set to ${capacity}` : "Capacity is unlimited"}
+          </p>
+          <p className="profile-meta">
+            {capacityUpdatedAt ? `Last updated ${new Date(capacityUpdatedAt).toLocaleString()}` : "Capacity has not been updated yet."}
+          </p>
+          {capacityError ? <p className="profile-error">{capacityError}</p> : null}
+          {!adminKey ? <p className="profile-meta">No admin key stored yet.</p> : null}
         </div>
       </section>
     </main>
