@@ -22,7 +22,7 @@ function formatDisplayName(session) {
 
 export default function ProfilePage() {
   const router = useRouter();
-  const [adminKey, setAdminKey] = useState(() => {
+  const [adminKey] = useState(() => {
     if (typeof window === "undefined") {
       return "";
     }
@@ -117,21 +117,18 @@ export default function ProfilePage() {
     window.localStorage.setItem("watch-party-admin-photo", dataUrl);
   }
 
-  function handleAdminKeyChange(event) {
-    const nextValue = event.target.value;
-    setAdminKey(nextValue);
-
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem("fifa-admin-access-key", nextValue);
-    }
-  }
-
   async function handleSaveCapacity() {
     setCapacitySaving(true);
     setCapacityError("");
 
     try {
-      const payload = capacity.trim() === "" ? null : Number(capacity);
+      const rawCapacity = capacity.trim();
+      const payload = rawCapacity === "" ? null : Number(rawCapacity);
+
+      if (payload !== null && (!Number.isInteger(payload) || payload <= 0)) {
+        throw new Error("Capacity must be a positive whole number.");
+      }
+
       const data = await updateInviteCapacity(adminKey, payload);
 
       if (!data.ok) {
@@ -159,57 +156,71 @@ export default function ProfilePage() {
   return (
     <main className="page-root profile-page">
       <section className="screen-shell profile-shell">
-        <div className="profile-hero">
-          <label className="profile-upload-button" aria-label="Change photo">
-            <svg aria-hidden="true" viewBox="0 0 24 24" className="profile-upload-icon">
-              <path d="M12 5.25 10.9 7.1H8.7A2.7 2.7 0 0 0 6 9.8v6.45A2.75 2.75 0 0 0 8.75 19h6.5A2.75 2.75 0 0 0 18 16.25V9.8a2.7 2.7 0 0 0-2.7-2.7h-2.2L12 5.25Zm0 4.25a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7Z" />
-            </svg>
-            <span className="sr-only">Change photo</span>
-            <input type="file" accept="image/*" onChange={handlePhotoChange} className="profile-upload-input" />
-          </label>
+        <header className="profile-intro">
+          <p className="profile-eyebrow">Profile</p>
+          <h1 className="profile-title">My profile</h1>
+          <p className="profile-lede">
+            Keep your photo and details up to date, then control invite capacity from one place.
+          </p>
+        </header>
 
-          <div className="profile-photo-frame">
-            {photo ? (
-              <Image alt="Profile photo" className="profile-photo" src={photo} width={320} height={320} />
-            ) : (
-              <div className="profile-photo-fallback">JJ</div>
-            )}
+        <article className="profile-card profile-identity-card">
+          <div className="profile-identity-visual">
+            <div className="profile-photo-frame">
+              {photo ? (
+                <Image
+                  alt="Profile photo"
+                  className="profile-photo"
+                  src={photo}
+                  width={320}
+                  height={320}
+                />
+              ) : (
+                <div className="profile-photo-fallback">JJ</div>
+              )}
+            </div>
+
+            <label className="profile-photo-button" aria-label="Change photo">
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="profile-upload-icon">
+                <path d="M12 5.25 10.9 7.1H8.7A2.7 2.7 0 0 0 6 9.8v6.45A2.75 2.75 0 0 0 8.75 19h6.5A2.75 2.75 0 0 0 18 16.25V9.8a2.7 2.7 0 0 0-2.7-2.7h-2.2L12 5.25Zm0 4.25a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7Z" />
+              </svg>
+              <span>Update photo</span>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoChange}
+                className="profile-upload-input"
+              />
+            </label>
           </div>
 
-          <div className="profile-copy">
-            <h1 className="screen-title">{displayName}</h1>
-            <p className="profile-meta">{phoneNumber}</p>
+          <div className="profile-identity-copy">
+            <p className="profile-label">My name</p>
+            <h2 className="profile-name">{displayName}</h2>
+            <p className="profile-phone">{phoneNumber}</p>
           </div>
-        </div>
+        </article>
 
-        <div className="profile-card">
-          <button className="secondary-button" type="button" onClick={handleLogout}>
-            Logout
-          </button>
-        </div>
+        <section className="profile-card profile-settings-card">
+          <div className="profile-section-head">
+            <p className="profile-label">Invite capacity</p>
+            <h2 className="profile-section-title">Limit guest count</h2>
+          </div>
 
-        <div className="profile-card">
-          <label className="profile-capacity-field">
-            <span>Admin access key</span>
-            <input
-              onChange={handleAdminKeyChange}
-              placeholder="Enter your admin key"
-              value={adminKey}
-            />
-          </label>
-
-          <label className="profile-capacity-field">
-            <span>Invite capacity</span>
+          <label className="profile-field">
+            <span>Guest limit</span>
             <input
               inputMode="numeric"
+              min="1"
               onChange={(event) => setCapacity(event.target.value)}
               placeholder="Leave blank for unlimited"
+              type="number"
               value={capacity}
             />
           </label>
 
           <button
-            className="secondary-button"
+            className="profile-save-button"
             disabled={capacitySaving || !adminKey}
             type="button"
             onClick={() => void handleSaveCapacity()}
@@ -221,11 +232,16 @@ export default function ProfilePage() {
             {settingsLoaded && capacity !== "" ? `Capacity set to ${capacity}` : "Capacity is unlimited"}
           </p>
           <p className="profile-meta">
-            {capacityUpdatedAt ? `Last updated ${new Date(capacityUpdatedAt).toLocaleString()}` : "Capacity has not been updated yet."}
+            {capacityUpdatedAt
+              ? `Last updated ${new Date(capacityUpdatedAt).toLocaleString()}`
+              : "Capacity has not been updated yet."}
           </p>
           {capacityError ? <p className="profile-error">{capacityError}</p> : null}
-          {!adminKey ? <p className="profile-meta">No admin key stored yet.</p> : null}
-        </div>
+        </section>
+
+        <button className="profile-logout-button" type="button" onClick={handleLogout}>
+          Log out
+        </button>
       </section>
     </main>
   );
