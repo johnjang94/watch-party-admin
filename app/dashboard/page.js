@@ -22,9 +22,7 @@ export default function DashboardPage() {
       </div>
       <section className="overview-shell">
         <header className="dashboard-hero">
-          <p className="dashboard-lede">WATCH PARTY ADMIN</p>
           <h1 className="dashboard-title-main">dashboard</h1>
-          <p className="dashboard-lede">Swipe through the latest guests, all guests, and inquiries.</p>
         </header>
         <DashboardCarousel />
       </section>

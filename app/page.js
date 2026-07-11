@@ -68,22 +68,22 @@ export default function HomePage() {
               <form className="auth-state auth-state-form login-panel" onSubmit={handleSubmit}>
                 <div className="name-row">
                   <label className="login-field">
-                    <span>first name</span>
+                    <span className="sr-only">First name</span>
                     <input
                       autoComplete="given-name"
                       onChange={(event) => setFirstName(event.target.value)}
-                      placeholder="First name"
+                      placeholder="First"
                       type="text"
                       value={firstName}
                     />
                   </label>
 
                   <label className="login-field">
-                    <span>last name</span>
+                    <span className="sr-only">Last name</span>
                     <input
                       autoComplete="family-name"
                       onChange={(event) => setLastName(event.target.value)}
-                      placeholder="Last name"
+                      placeholder="Last"
                       type="text"
                       value={lastName}
                     />
@@ -91,12 +91,12 @@ export default function HomePage() {
                 </div>
 
                 <label className="login-field">
-                  <span>phone number</span>
+                  <span className="sr-only">Phone number</span>
                   <input
                     autoComplete="tel"
                     inputMode="tel"
                     onChange={(event) => setPhoneNumber(event.target.value)}
-                    placeholder="Enter phone number"
+                    placeholder="Phone number"
                     type="tel"
                     value={phoneNumber}
                   />
@@ -109,7 +109,7 @@ export default function HomePage() {
                 ) : null}
 
                 <button className="login-submit" disabled={isSubmitting} type="submit">
-                  {isSubmitting ? "authenticating..." : "login"}
+                  {isSubmitting ? "authenticating..." : "admin access"}
                 </button>
               </form>
             </div>

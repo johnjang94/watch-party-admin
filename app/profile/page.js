@@ -157,11 +157,7 @@ export default function ProfilePage() {
     <main className="page-root profile-page">
       <section className="screen-shell profile-shell">
         <header className="profile-intro">
-          <p className="profile-eyebrow">Profile</p>
           <h1 className="profile-title">My profile</h1>
-          <p className="profile-lede">
-            Keep your photo and details up to date, then control invite capacity from one place.
-          </p>
         </header>
 
         <article className="profile-card profile-identity-card">
@@ -195,7 +191,6 @@ export default function ProfilePage() {
           </div>
 
           <div className="profile-identity-copy">
-            <p className="profile-label">My name</p>
             <h2 className="profile-name">{displayName}</h2>
             <p className="profile-phone">{phoneNumber}</p>
           </div>
@@ -203,17 +198,16 @@ export default function ProfilePage() {
 
         <section className="profile-card profile-settings-card">
           <div className="profile-section-head">
-            <p className="profile-label">Invite capacity</p>
             <h2 className="profile-section-title">Limit guest count</h2>
           </div>
 
           <label className="profile-field">
-            <span>Guest limit</span>
+            <span className="sr-only">Guest limit</span>
             <input
               inputMode="numeric"
               min="1"
               onChange={(event) => setCapacity(event.target.value)}
-              placeholder="Leave blank for unlimited"
+              placeholder="Unlimited"
               type="number"
               value={capacity}
             />

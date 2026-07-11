@@ -4,7 +4,7 @@ import { AdminSessionGuard } from "../components/admin-session-guard";
 
 export const metadata = {
   title: "Watch Party Admin",
-  description: "Mobile-first admin console for signups and inquiries.",
+  description: "Watch Party admin console.",
 };
 
 export const viewport = {

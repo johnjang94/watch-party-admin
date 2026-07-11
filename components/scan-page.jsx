@@ -141,7 +141,7 @@ export function ScanPage() {
     if (!supportsCamera || activeGuest) {
       if (!supportsCamera) {
         setCameraState("unavailable");
-        setCameraMessage("This browser cannot open the camera. Use the barcode below.");
+        setCameraMessage("Camera unavailable. Use barcode.");
       }
 
       return;
@@ -170,16 +170,14 @@ export function ScanPage() {
 
       if (!supportsAutoScan) {
         setCameraState("preview");
-        setCameraMessage(
-          "Camera preview is live, but this browser cannot decode QR codes automatically. Use the barcode below.",
-        );
+        setCameraMessage("Preview only. Use barcode.");
         return;
       }
 
       const detector = detectorRef.current ?? new window.BarcodeDetector({ formats: ["qr_code"] });
       detectorRef.current = detector;
       setCameraState("ready");
-      setCameraMessage("Point the QR code at the frame.");
+      setCameraMessage("Point at the QR code.");
 
       const scanFrame = async () => {
         if (!videoRef.current || !detectorRef.current || !streamRef.current || activeGuest) {
@@ -216,8 +214,8 @@ export function ScanPage() {
       setCameraState("error");
       setCameraMessage(
         error instanceof Error && error.name === "NotAllowedError"
-          ? "Camera permission was denied. Use the barcode below instead."
-          : "Camera could not start. Use the barcode below instead.",
+          ? "Camera permission denied. Use barcode."
+          : "Camera failed. Use barcode.",
       );
     }
   }, [activeGuest, processLookup, stopCamera, supportsAutoScan, supportsCamera]);
@@ -239,13 +237,13 @@ export function ScanPage() {
 
     const safeBarcode = sanitizeBarcode(manualBarcode);
     if (!safeBarcode) {
-      setManualError("Enter the 5-digit barcode shown under the guest QR code.");
+      setManualError("Enter 5 digits.");
       return;
     }
 
     setIsManualBusy(true);
     setManualError("");
-    setLookupMessage("Checking barcode...");
+    setLookupMessage("Checking...");
 
     try {
       const user = await processLookup(safeBarcode);
@@ -325,20 +323,14 @@ export function ScanPage() {
             <p className="scan-message">
               {activeGuest
                 ? isCheckedIn(activeGuest)
-                  ? "Guest checked in."
-                  : "Guest verified. Use the card below to confirm the check-in."
-                : cameraMessage || "Camera is ready when your browser supports it."}
+                  ? "Checked in."
+                  : "Verified."
+                : cameraMessage || "Ready."}
             </p>
 
             {!supportsAutoScan && supportsCamera ? (
-              <p className="scan-note">
-                QR decoding is unavailable on this browser, so the camera is preview-only.
-              </p>
+              <p className="scan-note">Preview only.</p>
             ) : null}
-
-            <p className="scan-note">
-              If the camera does not work, use the 5-digit barcode printed under the guest QR code.
-            </p>
 
             {lookupMessage ? <p className="scan-note">{lookupMessage}</p> : null}
 
@@ -346,7 +338,7 @@ export function ScanPage() {
 
             <form className="scan-manual" onSubmit={handleBarcodeSubmit}>
               <label className="scan-input-label" htmlFor="barcode-input">
-                Barcode
+                <span className="sr-only">Barcode</span>
                 <input
                   autoComplete="off"
                   className="field-input scan-input"
@@ -355,7 +347,7 @@ export function ScanPage() {
                   inputMode="numeric"
                   maxLength={5}
                   onChange={(event) => setManualBarcode(event.target.value)}
-                  placeholder="Enter 5 digits"
+                  placeholder="5 digits"
                   type="text"
                   value={manualBarcode}
                 />

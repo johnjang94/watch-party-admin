@@ -266,10 +266,10 @@ export function InquiryPage({ inquiries }) {
           </p>
 
           <label className="all-search-field inquiry-search-field">
-            <span>Search guests</span>
+            <span className="sr-only">Search guests</span>
             <input
               className="field-input all-search-input inquiry-search-input"
-              placeholder="Search guest, phone, message, or reply"
+              placeholder="Search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />
@@ -283,7 +283,6 @@ export function InquiryPage({ inquiries }) {
             const isOpen = resolvedExpandedId === group.id;
             const avatar = resolveAvatar(group.latestInquiry ?? group);
             const latestInquiry = group.latestInquiry;
-            const latestReason = makeReason(latestInquiry ?? {});
 
             return (
               <article className={`inquiry-card inquiry-panel ${isOpen ? "is-open" : ""}`} key={group.id}>
@@ -306,8 +305,6 @@ export function InquiryPage({ inquiries }) {
 
                         <div className="inquiry-copy-text">
                           <p className="inquiry-name">{group.customer}</p>
-                          <p className="inquiry-question">{makeSummary(latestInquiry ?? {})}</p>
-                          {latestReason ? <p className="inquiry-reason">Reason: {latestReason}</p> : null}
                         </div>
                       </div>
                     </div>
@@ -335,7 +332,9 @@ export function InquiryPage({ inquiries }) {
                             </div>
                             <p className="inquiry-question">{makeSummary(item)}</p>
                             {makeReason(item) ? (
-                              <p className="inquiry-reason">Reason: {makeReason(item)}</p>
+                              <span className="status-chip is-muted inquiry-chip inquiry-reason-chip">
+                                {makeReason(item)}
+                              </span>
                             ) : null}
                           </div>
 
@@ -361,7 +360,7 @@ export function InquiryPage({ inquiries }) {
                                 </div>
                               ))
                             ) : (
-                              <div className="inquiry-empty-thread">No thread messages yet.</div>
+                              <div className="inquiry-empty-thread">No messages yet.</div>
                             )}
                           </div>
                         </section>
@@ -377,7 +376,7 @@ export function InquiryPage({ inquiries }) {
                         >
                           <textarea
                             className="inquiry-reply-input"
-                            placeholder="Reply to the most recent conversation..."
+                            placeholder="Reply"
                             rows={3}
                             value={drafts[latestInquiry.id] ?? ""}
                             onChange={(event) => updateDraft(latestInquiry.id, event.target.value)}
@@ -402,7 +401,7 @@ export function InquiryPage({ inquiries }) {
 
         {!visibleGroups.length ? (
           <div className="inquiry-empty-thread inquiry-empty-search">
-            No inquiries matched your search.
+            No matches.
           </div>
         ) : null}
       </section>

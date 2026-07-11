@@ -419,7 +419,7 @@ function NewListView({ title, users }) {
         ) : (
           <div className="roster-empty new-empty">
             <strong>No guests yet.</strong>
-            <p>The list will populate as soon as the backend returns registrations.</p>
+            <p>Waiting on registrations.</p>
           </div>
         )}
       </section>
@@ -450,10 +450,10 @@ function AllListView({ title, users }) {
             <p className="all-count">{hasUsers ? `${visibleUsers.length} guests` : "No guests yet"}</p>
 
             <label className="all-search-field">
-              <span>Search guests</span>
+              <span className="sr-only">Search guests</span>
               <input
                 className="field-input all-search-input"
-                placeholder="Search name, phone, or survey"
+                placeholder="Search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
@@ -483,12 +483,8 @@ function AllListView({ title, users }) {
           </div>
         ) : (
           <div className="roster-empty new-empty">
-            <strong>{hasUsers ? "No guests matched your search." : "No guests yet."}</strong>
-            <p>
-              {hasUsers
-                ? "Try a different name, phone number, or survey keyword."
-                : "The list will populate as soon as the backend returns registrations."}
-            </p>
+            <strong>{hasUsers ? "No matches." : "No guests yet."}</strong>
+            <p>{hasUsers ? "Try another search." : "Waiting on registrations."}</p>
           </div>
         )}
       </section>

@@ -163,10 +163,6 @@ export function AdminDashboard() {
         <div className="hero-copy">
           <p className="eyebrow">control room</p>
           <h1>Invite dashboard</h1>
-          <p className="lede">
-            This view reads the Firestore-backed backend and shows the latest
-            guest requests in one clean place.
-          </p>
 
           <div className="stat-row">
             <div>
@@ -192,11 +188,11 @@ export function AdminDashboard() {
 
         <div className="admin-sidebar">
           <div className="admin-key-card">
-            <label>
-              <span>Admin access key</span>
+            <label className="admin-field">
+              <span className="sr-only">Admin access key</span>
               <input
                 onChange={(event) => setAdminKey(event.target.value)}
-                placeholder="Enter your admin key"
+                placeholder="Access key"
                 value={adminKey}
               />
             </label>
@@ -206,17 +202,17 @@ export function AdminDashboard() {
               onClick={() => void loadDashboard(adminKey)}
               type="button"
             >
-              {loading ? "Loading..." : "Load requests"}
+              {loading ? "Loading..." : "Load"}
             </button>
           </div>
 
           <div className="admin-key-card">
-            <label>
-              <span>Invite capacity</span>
+            <label className="admin-field">
+              <span className="sr-only">Invite capacity</span>
               <input
                 inputMode="numeric"
                 onChange={(event) => setCapacity(event.target.value)}
-                placeholder="Leave blank for unlimited"
+                placeholder="Capacity"
                 value={capacity}
               />
             </label>
@@ -226,13 +222,13 @@ export function AdminDashboard() {
               onClick={() => void saveCapacity()}
               type="button"
             >
-              {capacitySaving ? "Saving..." : "Save capacity"}
+              {capacitySaving ? "Saving..." : "Save"}
             </button>
 
             <p className="status-copy">
               {capacityUpdatedAt
-                ? `Last updated ${new Date(capacityUpdatedAt).toLocaleString()}`
-                : "Capacity has not been set yet."}
+                ? new Date(capacityUpdatedAt).toLocaleString()
+                : "Not set yet"}
             </p>
           </div>
         </div>
