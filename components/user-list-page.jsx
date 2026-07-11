@@ -222,6 +222,7 @@ function matchesUser(user, query) {
     user.phoneNumber,
     user.attendance,
     user.rsvp,
+    user.checkedInAt,
     user.registeredAt,
     user.createdAt,
     user.survey?.howDidYouKnow,
@@ -233,6 +234,26 @@ function matchesUser(user, query) {
     .map((entry) => String(entry).toLowerCase());
 
   return fields.some((entry) => entry.includes(value));
+}
+
+function isCheckedIn(user) {
+  return Boolean(user?.checkedInAt);
+}
+
+function isGoing(user) {
+  return String(user?.rsvp ?? user?.attendance ?? user?.status ?? "").trim().toLowerCase() === "going";
+}
+
+function getCheckInBadge(user) {
+  if (isCheckedIn(user)) {
+    return { label: "checked-in", className: "is-checked-in" };
+  }
+
+  if (isGoing(user)) {
+    return { label: "to be checked in", className: "is-awaiting-checkin" };
+  }
+
+  return null;
 }
 
 function UserAvatar({ user, className, fallbackClassName }) {
@@ -313,7 +334,9 @@ function NewDetailCard({ user }) {
   );
 }
 
-function ExpandableUserCard({ user, isOpen, onToggle }) {
+function ExpandableUserCard({ user, isOpen, onToggle, showCheckInBadge = false }) {
+  const checkInBadge = showCheckInBadge ? getCheckInBadge(user) : null;
+
   return (
     <article className={`new-card ${isOpen ? "is-open" : ""}`}>
       <button
@@ -331,9 +354,16 @@ function ExpandableUserCard({ user, isOpen, onToggle }) {
         </div>
 
         <div className="new-list-copy">
-          <strong className="new-list-name">
-            {user.firstName} {user.lastName}
-          </strong>
+          <div className="new-list-title-row">
+            <strong className="new-list-name">
+              {user.firstName} {user.lastName}
+            </strong>
+            {checkInBadge ? (
+              <span className={`status-chip roster-chip ${checkInBadge.className}`}>
+                {checkInBadge.label}
+              </span>
+            ) : null}
+          </div>
           <span className="new-list-meta">{user.phoneNumber || "Unavailable"}</span>
         </div>
 
@@ -443,6 +473,7 @@ function AllListView({ title, users }) {
                       onToggle={() =>
                         setSelectedId((current) => (current === user.id ? "" : user.id))
                       }
+                      showCheckInBadge
                       user={user}
                     />
                   );

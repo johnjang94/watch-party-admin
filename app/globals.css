@@ -526,6 +526,18 @@ img {
   border-color: rgba(220, 191, 115, 0.18);
 }
 
+.roster-chip.is-checked-in {
+  background: rgba(119, 231, 160, 0.12);
+  color: var(--accent-2);
+  border-color: rgba(119, 231, 160, 0.22);
+}
+
+.roster-chip.is-awaiting-checkin {
+  background: rgba(246, 156, 71, 0.12);
+  color: #ffcf9f;
+  border-color: rgba(246, 156, 71, 0.24);
+}
+
 .roster-meta {
   gap: 8px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1927,13 +1939,16 @@ img {
 }
 
 .scan-actions {
-  display: flex;
+  display: grid;
   gap: 10px;
-  flex-wrap: wrap;
 }
 
 .scan-actions .secondary-button {
-  flex: 1 1 160px;
+  width: 100%;
+}
+
+.scan-result-chip {
+  width: fit-content;
 }
 
 .scan-manual {
@@ -3427,6 +3442,13 @@ img {
   min-width: 0;
   display: grid;
   gap: 4px;
+}
+
+.new-list-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .new-list-name {

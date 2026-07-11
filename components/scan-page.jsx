@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useCallback } from "react";
-import { fetchAdminUserByToken } from "../lib/admin-api";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { fetchAdminUserByToken, markAdminUserCheckedIn } from "../lib/admin-api";
 
 function formatValue(value) {
   if (!value) return "Unavailable";
+
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
 
@@ -25,6 +25,38 @@ function resolveRsvp(user) {
   return String(user?.rsvp ?? user?.attendance ?? user?.status ?? "Going");
 }
 
+function sanitizeBarcode(value) {
+  const digits = String(value ?? "").replace(/\D/g, "");
+  return digits.length === 5 ? digits : "";
+}
+
+function normalizeScanValue(value) {
+  const rawValue = String(value ?? "").trim();
+  if (!rawValue) {
+    return "";
+  }
+
+  if (/^\d{5}$/.test(rawValue)) {
+    return rawValue;
+  }
+
+  try {
+    const url = new URL(rawValue, window.location.origin);
+    const inviteToken = url.searchParams.get("invite")?.trim();
+    if (inviteToken) {
+      return inviteToken;
+    }
+  } catch {
+    // Fall back to the raw QR payload.
+  }
+
+  return rawValue;
+}
+
+function isCheckedIn(user) {
+  return Boolean(user?.checkedInAt);
+}
+
 export function ScanPage() {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
@@ -33,14 +65,29 @@ export function ScanPage() {
   const ignoreTokenRef = useRef("");
   const ignoreUntilRef = useRef(0);
   const resumeTimerRef = useRef(null);
-  const [supportsScan] = useState(() => {
+  const [supportsCamera] = useState(() => {
     if (typeof window === "undefined") {
       return false;
     }
 
-    return "BarcodeDetector" in window && !!navigator.mediaDevices?.getUserMedia;
+    return !!navigator.mediaDevices?.getUserMedia;
   });
-  const [isCameraReady, setIsCameraReady] = useState(false);
+  const [supportsAutoScan] = useState(() => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+
+    return "BarcodeDetector" in window;
+  });
+  const [cameraState, setCameraState] = useState("idle");
+  const [cameraMessage, setCameraMessage] = useState("");
+  const [manualBarcode, setManualBarcode] = useState("");
+  const [manualError, setManualError] = useState("");
+  const [lookupMessage, setLookupMessage] = useState("");
+  const [checkInMessage, setCheckInMessage] = useState("");
+  const [checkInError, setCheckInError] = useState("");
+  const [isCheckInBusy, setIsCheckInBusy] = useState(false);
+  const [isManualBusy, setIsManualBusy] = useState(false);
   const [activeGuest, setActiveGuest] = useState(null);
 
   const stopCamera = useCallback(async () => {
@@ -64,13 +111,44 @@ export function ScanPage() {
       video.srcObject = null;
     }
 
-    setIsCameraReady(false);
+    setCameraState("idle");
   }, []);
 
+  const processLookup = useCallback(
+    async (identifier) => {
+      const safeIdentifier = normalizeScanValue(identifier);
+      if (!safeIdentifier) {
+        return null;
+      }
+
+      const user = await fetchAdminUserByToken(safeIdentifier);
+      if (!user) {
+        return null;
+      }
+
+      setActiveGuest(user);
+      setManualError("");
+      setLookupMessage("");
+      setCheckInMessage("");
+      setCheckInError("");
+      await stopCamera();
+      return user;
+    },
+    [stopCamera],
+  );
+
   const openCamera = useCallback(async () => {
-    if (!supportsScan || activeGuest) {
+    if (!supportsCamera || activeGuest) {
+      if (!supportsCamera) {
+        setCameraState("unavailable");
+        setCameraMessage("This browser cannot open the camera. Use the barcode below.");
+      }
+
       return;
     }
+
+    setCameraState("starting");
+    setCameraMessage("Opening camera...");
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -90,9 +168,18 @@ export function ScanPage() {
       video.srcObject = stream;
       await video.play();
 
+      if (!supportsAutoScan) {
+        setCameraState("preview");
+        setCameraMessage(
+          "Camera preview is live, but this browser cannot decode QR codes automatically. Use the barcode below.",
+        );
+        return;
+      }
+
       const detector = detectorRef.current ?? new window.BarcodeDetector({ formats: ["qr_code"] });
       detectorRef.current = detector;
-      setIsCameraReady(true);
+      setCameraState("ready");
+      setCameraMessage("Point the QR code at the frame.");
 
       const scanFrame = async () => {
         if (!videoRef.current || !detectorRef.current || !streamRef.current || activeGuest) {
@@ -102,15 +189,14 @@ export function ScanPage() {
         try {
           const codes = await detectorRef.current.detect(videoRef.current);
           if (codes.length) {
-            const value = String(codes[0].rawValue ?? "").trim();
+            const value = normalizeScanValue(codes[0].rawValue);
             const now = Date.now();
             if (value && (ignoreTokenRef.current !== value || now > ignoreUntilRef.current)) {
               ignoreTokenRef.current = value;
               ignoreUntilRef.current = now + 2500;
-              const user = await fetchAdminUserByToken(value);
+
+              const user = await processLookup(value);
               if (user) {
-                setActiveGuest(user);
-                await stopCamera();
                 return;
               }
             }
@@ -125,20 +211,87 @@ export function ScanPage() {
       };
 
       void scanFrame();
-    } catch {
+    } catch (error) {
       await stopCamera();
+      setCameraState("error");
+      setCameraMessage(
+        error instanceof Error && error.name === "NotAllowedError"
+          ? "Camera permission was denied. Use the barcode below instead."
+          : "Camera could not start. Use the barcode below instead.",
+      );
     }
-  }, [activeGuest, stopCamera, supportsScan]);
+  }, [activeGuest, processLookup, stopCamera, supportsAutoScan, supportsCamera]);
 
   function closeGuestCard() {
     setActiveGuest(null);
+    setManualBarcode("");
+    setManualError("");
+    setLookupMessage("");
+    setCheckInMessage("");
+    setCheckInError("");
     resumeTimerRef.current = setTimeout(() => {
       void openCamera();
     }, 250);
   }
 
+  async function handleBarcodeSubmit(event) {
+    event.preventDefault();
+
+    const safeBarcode = sanitizeBarcode(manualBarcode);
+    if (!safeBarcode) {
+      setManualError("Enter the 5-digit barcode shown under the guest QR code.");
+      return;
+    }
+
+    setIsManualBusy(true);
+    setManualError("");
+    setLookupMessage("Checking barcode...");
+
+    try {
+      const user = await processLookup(safeBarcode);
+      if (!user) {
+        setManualError("No guest matches that barcode.");
+        setLookupMessage("");
+        return;
+      }
+
+      setManualBarcode("");
+    } finally {
+      setIsManualBusy(false);
+    }
+  }
+
+  async function handleCheckIn() {
+    if (!activeGuest || isCheckedIn(activeGuest) || isCheckInBusy) {
+      return;
+    }
+
+    setIsCheckInBusy(true);
+    setCheckInError("");
+    setCheckInMessage("Saving check-in...");
+
+    try {
+      const nextGuest = await markAdminUserCheckedIn(activeGuest.id || activeGuest.qrToken || activeGuest.barcode);
+      if (!nextGuest) {
+        setCheckInError("Could not save the check-in.");
+        setCheckInMessage("");
+        return;
+      }
+
+      setActiveGuest(nextGuest);
+      setCheckInMessage("Guest checked in.");
+    } catch (error) {
+      setCheckInError(error instanceof Error ? error.message : "Could not save the check-in.");
+      setCheckInMessage("");
+    } finally {
+      setIsCheckInBusy(false);
+    }
+  }
+
   useEffect(() => {
-    if (!supportsScan) {
+    if (!supportsCamera) {
+      setCameraState("unavailable");
+      setCameraMessage("This browser cannot open the camera. Use the barcode below.");
       return undefined;
     }
 
@@ -150,7 +303,7 @@ export function ScanPage() {
       window.clearTimeout(startTimer);
       void stopCamera();
     };
-  }, [openCamera, stopCamera, supportsScan]);
+  }, [openCamera, stopCamera, supportsCamera]);
 
   const guestName = activeGuest ? `${activeGuest.firstName ?? ""} ${activeGuest.lastName ?? ""}`.trim() : "";
   const guestStatus = resolveRsvp(activeGuest);
@@ -159,35 +312,117 @@ export function ScanPage() {
   return (
     <main className="page-root scan-page">
       <section className="scan-shell" aria-label="QR scanner">
-        <div className="scan-stage">
-          <video ref={videoRef} className="scan-video" playsInline muted />
-          {!supportsScan ? <div className="scan-fallback">Camera unavailable</div> : null}
-          {!isCameraReady && supportsScan ? <div className="scan-fallback">Opening camera...</div> : null}
-          <div className="scan-frame" aria-hidden="true" />
-        </div>
+        <article className="scan-card">
+          <div className="scan-camera">
+            <video ref={videoRef} className="scan-video" playsInline muted />
+            {cameraState === "unavailable" ? <div className="scan-placeholder">{cameraMessage}</div> : null}
+            {cameraState === "starting" ? <div className="scan-placeholder">{cameraMessage}</div> : null}
+            {cameraState === "error" ? <div className="scan-placeholder">{cameraMessage}</div> : null}
+            {cameraState === "preview" ? <div className="scan-placeholder">{cameraMessage}</div> : null}
+          </div>
+
+          <div className="scan-copy">
+            <p className="scan-message">
+              {activeGuest
+                ? isCheckedIn(activeGuest)
+                  ? "Guest checked in."
+                  : "Guest verified. Use the card below to confirm the check-in."
+                : cameraMessage || "Camera is ready when your browser supports it."}
+            </p>
+
+            {!supportsAutoScan && supportsCamera ? (
+              <p className="scan-note">
+                QR decoding is unavailable on this browser, so the camera is preview-only.
+              </p>
+            ) : null}
+
+            <p className="scan-note">
+              If the camera does not work, use the 5-digit barcode printed under the guest QR code.
+            </p>
+
+            {lookupMessage ? <p className="scan-note">{lookupMessage}</p> : null}
+
+            {manualError ? <p className="scan-error">{manualError}</p> : null}
+
+            <form className="scan-manual" onSubmit={handleBarcodeSubmit}>
+              <label className="scan-input-label" htmlFor="barcode-input">
+                Barcode
+                <input
+                  autoComplete="off"
+                  className="field-input scan-input"
+                  disabled={isManualBusy || Boolean(activeGuest)}
+                  id="barcode-input"
+                  inputMode="numeric"
+                  maxLength={5}
+                  onChange={(event) => setManualBarcode(event.target.value)}
+                  placeholder="Enter 5 digits"
+                  type="text"
+                  value={manualBarcode}
+                />
+              </label>
+              <button
+                className="primary-button scan-submit"
+                disabled={isManualBusy || Boolean(activeGuest)}
+                type="submit"
+              >
+                {isManualBusy ? "checking..." : "verify barcode"}
+              </button>
+            </form>
+          </div>
+        </article>
 
         {activeGuest ? (
-          <div className="scan-modal" role="dialog" aria-modal="true" aria-label="Checked in guest">
-            <div className="scan-modal-card">
-              <div className="scan-modal-hero">
-                {guestPhoto ? (
-                  <img alt={guestName} src={guestPhoto} className="scan-modal-photo" />
-                ) : (
-                  <div className="scan-modal-fallback">{initialsFor(activeGuest)}</div>
-                )}
-              </div>
+          <section className="scan-result" aria-live="polite">
+            <div className="scan-result-avatar">
+              {guestPhoto ? (
+                <img alt={guestName} src={guestPhoto} />
+              ) : (
+                <div className="scan-result-fallback">{initialsFor(activeGuest)}</div>
+              )}
+            </div>
 
-              <div className="scan-modal-copy">
-                <strong className="scan-modal-name">{guestName}</strong>
-                <p className="scan-modal-line">RSVP: {guestStatus}</p>
-                <p className="scan-modal-line">{activeGuest.phoneNumber || "Unavailable"}</p>
-                <p className="scan-modal-line">{formatValue(activeGuest.registeredAt ?? activeGuest.createdAt)}</p>
-                <button className="primary-button scan-modal-button" type="button" onClick={closeGuestCard}>
-                  checked in
+          <div className="scan-result-copy">
+            <div className="scan-result-row">
+              <strong>{guestName}</strong>
+              <span>{guestStatus}</span>
+            </div>
+
+            {isCheckedIn(activeGuest) ? (
+              <span className="status-chip scan-result-chip is-checked-in">checked-in</span>
+            ) : null}
+
+            <dl className="scan-result-meta">
+                <div>
+                  <dt>Phone</dt>
+                  <dd>{activeGuest.phoneNumber || "Unavailable"}</dd>
+                </div>
+                <div>
+                  <dt>Registered</dt>
+                  <dd>{formatValue(activeGuest.registeredAt ?? activeGuest.createdAt)}</dd>
+                </div>
+                <div>
+                  <dt>Barcode</dt>
+                  <dd>{String(activeGuest.barcode ?? "Unavailable")}</dd>
+                </div>
+              </dl>
+
+              <div className="scan-actions">
+                {checkInError ? <p className="scan-error">{checkInError}</p> : null}
+                {checkInMessage ? <p className="scan-note">{checkInMessage}</p> : null}
+                <button
+                  className="primary-button scan-submit"
+                  disabled={isCheckInBusy || isCheckedIn(activeGuest)}
+                  type="button"
+                  onClick={handleCheckIn}
+                >
+                  {isCheckedIn(activeGuest) ? "checked in" : isCheckInBusy ? "checking..." : "check-in"}
+                </button>
+                <button className="secondary-button" type="button" onClick={closeGuestCard}>
+                  scan next guest
                 </button>
               </div>
             </div>
-          </div>
+          </section>
         ) : null}
       </section>
     </main>
