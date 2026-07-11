@@ -1,8 +1,24 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_CONTROL_URL ?? "https://fifa-control.onrender.com";
+
+function buildFirebaseStorageDownloadUrl(bucketName, objectPath, token) {
+  const cleanBucket = String(bucketName ?? "").trim();
+  const cleanPath = String(objectPath ?? "")
+    .trim()
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+  const cleanToken = String(token ?? "").trim();
+
+  if (!cleanBucket || !cleanPath || !cleanToken) {
+    return null;
+  }
+
+  return `https://firebasestorage.googleapis.com/v0/b/${cleanBucket}/o/${cleanPath}?alt=media&token=${encodeURIComponent(cleanToken)}`;
+}
 
 function formatValue(value) {
   if (!value) return "Unavailable";
@@ -20,20 +36,44 @@ function formatValue(value) {
 function normalizeAvatarSource(raw) {
   if (!raw) return null;
 
-  const value =
-    typeof raw === "string"
-      ? raw.trim()
-      : typeof raw?.src === "string"
-        ? raw.src.trim()
-        : typeof raw?.url === "string"
-          ? raw.url.trim()
-          : typeof raw?.path === "string"
-            ? raw.path.trim()
-            : typeof raw?.value === "string"
-              ? raw.value.trim()
-              : null;
+  if (typeof raw === "object") {
+    const directCandidates = [
+      raw.url,
+      raw.src,
+      raw.downloadUrl,
+      raw.downloadURL,
+      raw.avatarUrl,
+      raw.profilePhotoUrl,
+      raw.path,
+      raw.value,
+    ];
+
+    for (const candidate of directCandidates) {
+      const normalized = normalizeAvatarSource(candidate);
+      if (normalized) {
+        return normalized;
+      }
+    }
+
+    const bucketUrl = buildFirebaseStorageDownloadUrl(
+      raw.storageBucket,
+      raw.storagePath,
+      raw.downloadToken,
+    );
+    if (bucketUrl) {
+      return bucketUrl;
+    }
+
+    return null;
+  }
+
+  const value = String(raw).trim();
 
   if (!value) return null;
+
+  if (value === "[object Object]" || value === "null" || value === "undefined") {
+    return null;
+  }
 
   if (
     value.startsWith("http://") ||
@@ -42,6 +82,21 @@ function normalizeAvatarSource(raw) {
     value.startsWith("blob:")
   ) {
     return value;
+  }
+
+  if (value.startsWith("//")) {
+    return `https:${value}`;
+  }
+
+  if (
+    value.startsWith("firebasestorage.googleapis.com/") ||
+    value.startsWith("storage.googleapis.com/")
+  ) {
+    return `https://${value}`;
+  }
+
+  if (value.startsWith("gs://")) {
+    return null;
   }
 
   try {
@@ -54,6 +109,7 @@ function normalizeAvatarSource(raw) {
 function resolveAvatar(user) {
   const candidates = [
     user.profilePhotoUrl,
+    user.profilePhoto,
     user.avatarUrl,
     user.profilePhoto,
     user.avatar,
@@ -61,6 +117,7 @@ function resolveAvatar(user) {
     user.photo,
     user.avatarPath,
     user.picture,
+    user.customerPhotoUrl,
   ];
 
   for (const candidate of candidates) {
@@ -71,6 +128,24 @@ function resolveAvatar(user) {
   }
 
   return null;
+}
+
+function AvatarImage({ alt, className, fallbackClassName, fallbackText, src }) {
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [src]);
+
+  if (!src || failed) {
+    return (
+      <div className={fallbackClassName} aria-hidden="true">
+        {fallbackText}
+      </div>
+    );
+  }
+
+  return <img alt={alt} className={className} src={src} onError={() => setFailed(true)} />;
 }
 
 function initialsFor(user) {
@@ -115,30 +190,28 @@ function matchesUser(user, query) {
 function UserAvatar({ user, className, fallbackClassName }) {
   const avatar = resolveAvatar(user);
 
-  if (avatar) {
-    return <img alt={`${user.firstName} ${user.lastName}`} className={className} src={avatar} />;
-  }
-
   return (
-    <div className={fallbackClassName} aria-hidden="true">
-      {initialsFor(user)}
-    </div>
+    <AvatarImage
+      alt={`${user.firstName} ${user.lastName}`}
+      className={className}
+      fallbackClassName={fallbackClassName}
+      fallbackText={initialsFor(user)}
+      src={avatar}
+    />
   );
 }
 
 function NewDetailCard({ user }) {
-  const avatar = resolveAvatar(user);
-
   return (
     <article className="new-detail-card">
       <div className="new-detail-hero">
-        {avatar ? (
-          <img alt={`${user.firstName} ${user.lastName}`} className="new-detail-photo" src={avatar} />
-        ) : (
-          <div className="new-detail-fallback" aria-hidden="true">
-            {initialsFor(user)}
-          </div>
-        )}
+        <AvatarImage
+          alt={`${user.firstName} ${user.lastName}`}
+          className="new-detail-photo"
+          fallbackClassName="new-detail-fallback"
+          fallbackText={initialsFor(user)}
+          src={resolveAvatar(user)}
+        />
       </div>
 
       <div className="new-detail-copy">
@@ -188,18 +261,53 @@ function NewDetailCard({ user }) {
   );
 }
 
+function ExpandableUserCard({ user, isOpen, onToggle }) {
+  return (
+    <article className={`new-card ${isOpen ? "is-open" : ""}`}>
+      <button
+        className="new-list-item new-card-header"
+        type="button"
+        aria-expanded={isOpen}
+        onClick={onToggle}
+      >
+        <div className="new-list-avatar">
+          <UserAvatar
+            className="new-list-photo"
+            fallbackClassName="new-list-fallback"
+            user={user}
+          />
+        </div>
+
+        <div className="new-list-copy">
+          <strong className="new-list-name">
+            {user.firstName} {user.lastName}
+          </strong>
+          <span className="new-list-meta">{user.phoneNumber || "Unavailable"}</span>
+        </div>
+
+        <span className="new-list-arrow" aria-hidden="true">
+          {isOpen ? "−" : "→"}
+        </span>
+      </button>
+
+      <div className="new-card-body" aria-hidden={!isOpen}>
+        <div className="new-card-body-inner">
+          <NewDetailCard user={user} />
+        </div>
+      </div>
+    </article>
+  );
+}
+
 function NewListView({ title, users }) {
   const hasUsers = users.length > 0;
   const [selectedId, setSelectedId] = useState("");
-  const selectedUser = users.find((user) => user.id === selectedId) ?? null;
-  const selectedUserId = selectedUser?.id ?? "";
 
   return (
     <main className="page-root detail-page new-page">
       <section className="screen-shell new-shell">
         <header className="new-topbar">
           <div className="screen-heading new-heading">
-            <p className="eyebrow">new</p>
             <h1 className="screen-title">{title}</h1>
           </div>
           <p className="new-summary">{hasUsers ? `${users.length} guests` : "No guests yet"}</p>
@@ -210,42 +318,21 @@ function NewListView({ title, users }) {
             <section className="new-list-card" aria-label="New guest list">
               <div className="new-list">
                 {users.map((user) => {
-                  const isActive = selectedUserId === user.id;
+                  const isActive = selectedId === user.id;
 
                   return (
-                    <button
-                      className={`new-list-item ${isActive ? "is-active" : ""}`}
+                    <ExpandableUserCard
+                      isOpen={isActive}
                       key={user.id}
-                      type="button"
-                      onClick={() =>
+                      onToggle={() =>
                         setSelectedId((current) => (current === user.id ? "" : user.id))
                       }
-                    >
-                      <div className="new-list-avatar">
-                        <UserAvatar
-                          className="new-list-photo"
-                          fallbackClassName="new-list-fallback"
-                          user={user}
-                        />
-                      </div>
-
-                      <div className="new-list-copy">
-                        <strong className="new-list-name">
-                          {user.firstName} {user.lastName}
-                        </strong>
-                        <span className="new-list-meta">{user.phoneNumber || "Unavailable"}</span>
-                      </div>
-
-                      <span className="new-list-arrow" aria-hidden="true">
-                        →
-                      </span>
-                    </button>
+                      user={user}
+                    />
                   );
                 })}
               </div>
             </section>
-
-            {selectedUserId ? <NewDetailCard user={selectedUser} /> : null}
           </div>
         ) : (
           <div className="roster-empty new-empty">
@@ -278,24 +365,22 @@ function AllListView({ title, users }) {
       <section className="screen-shell all-shell">
         <header className="new-topbar all-topbar">
           <div className="screen-heading new-heading all-heading">
-            <p className="eyebrow">all</p>
             <h1 className="screen-title">{title}</h1>
           </div>
+          <div className="all-toolbar">
+            <p className="all-count">{hasUsers ? `${visibleUsers.length} guests` : "No guests yet"}</p>
+
+            <label className="all-search-field">
+              <span>Search guests</span>
+              <input
+                className="field-input all-search-input"
+                placeholder="Search name, phone, or survey"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+            </label>
+          </div>
         </header>
-
-        <div className="all-toolbar">
-          <p className="all-count">{hasUsers ? `${visibleUsers.length} guests` : "No guests yet"}</p>
-
-          <label className="all-search-field">
-            <span>Search guests</span>
-            <input
-              className="field-input all-search-input"
-              placeholder="Search name, phone, or survey"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-            />
-          </label>
-        </div>
 
         {hasResults ? (
           <div className="new-layout">
