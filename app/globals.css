@@ -589,23 +589,15 @@ img {
 }
 
 .inquiry-topbar {
-  margin-bottom: 2px;
+  margin-bottom: 0;
+}
+
+.inquiry-toolbar {
+  margin-top: 2px;
 }
 
 .inquiry-heading .screen-title {
   font-size: clamp(1.7rem, 4vw, 2.4rem);
-}
-
-.inquiry-summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 0 2px;
-  color: rgba(234, 243, 238, 0.64);
-  text-transform: uppercase;
-  letter-spacing: 0.18em;
-  font-size: 0.7rem;
 }
 
 .inquiry-grid {
@@ -629,6 +621,49 @@ img {
 .inquiry-panel-head {
   align-items: flex-start;
   margin-bottom: 10px;
+}
+
+.inquiry-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  overflow: hidden;
+  transition: grid-template-rows 340ms cubic-bezier(0.22, 0.8, 0.18, 1);
+}
+
+.inquiry-panel.is-open .inquiry-body {
+  grid-template-rows: 1fr;
+}
+
+.inquiry-group-body-inner {
+  min-height: 0;
+  overflow: hidden;
+  display: grid;
+  gap: 14px;
+  padding-top: 10px;
+}
+
+.inquiry-session {
+  display: grid;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.inquiry-session:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.inquiry-session-head {
+  display: grid;
+  gap: 6px;
+}
+
+.inquiry-session-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .inquiry-copy {
@@ -3178,9 +3213,9 @@ img {
 
 .all-topbar {
   display: grid;
-  gap: 12px;
-  justify-items: stretch;
-  text-align: left;
+  gap: 6px;
+  justify-items: center;
+  text-align: center;
 }
 
 .new-summary {
@@ -3194,9 +3229,10 @@ img {
 .all-toolbar {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(0, 8fr);
-  align-items: end;
+  align-items: center;
   gap: 12px;
   width: 100%;
+  text-align: left;
 }
 
 .all-count {
@@ -3207,13 +3243,13 @@ img {
   font-size: 0.68rem;
   white-space: nowrap;
   justify-self: start;
-  align-self: end;
-  padding-bottom: 4px;
+  align-self: center;
+  padding-bottom: 0;
 }
 
 .all-search-field {
   display: grid;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
   color: rgba(244, 255, 248, 0.58);
   text-transform: uppercase;
