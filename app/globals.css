@@ -3754,6 +3754,34 @@ img {
   gap: 14px;
 }
 
+.new-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.new-admin-key-field input {
+  min-height: 44px;
+  width: min(100%, 240px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  padding: 0 14px;
+  outline: none;
+}
+
+.new-admin-key-field input::placeholder {
+  color: rgba(234, 243, 238, 0.44);
+}
+
+.new-admin-key-field input:focus {
+  border-color: rgba(246, 209, 93, 0.35);
+  box-shadow: 0 0 0 4px rgba(246, 209, 93, 0.1);
+}
+
 .new-list-card,
 .new-detail-card {
   border-radius: 30px;
@@ -4054,6 +4082,13 @@ img {
   text-transform: uppercase;
   letter-spacing: 0.16em;
   font-size: 0.72rem;
+}
+
+.new-detail-action-helper {
+  margin: 0;
+  color: rgba(234, 243, 238, 0.58);
+  font-size: 0.76rem;
+  line-height: 1.4;
 }
 
 .new-detail-send-banner {
