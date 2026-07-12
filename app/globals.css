@@ -4040,6 +4040,68 @@ img {
   gap: 10px;
 }
 
+.new-detail-actions {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+
+.new-detail-action-button {
+  width: fit-content;
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.72rem;
+}
+
+.new-detail-send-banner {
+  display: grid;
+  gap: 3px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(119, 231, 160, 0.22);
+  background:
+    linear-gradient(180deg, rgba(119, 231, 160, 0.18), rgba(20, 40, 28, 0.82)),
+    rgba(8, 20, 16, 0.92);
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.new-detail-send-banner.is-error {
+  border-color: rgba(255, 123, 123, 0.24);
+  background:
+    linear-gradient(180deg, rgba(255, 123, 123, 0.16), rgba(58, 16, 16, 0.84)),
+    rgba(8, 20, 16, 0.92);
+}
+
+.new-detail-send-banner.is-success {
+  border-color: rgba(119, 231, 160, 0.3);
+}
+
+.new-detail-send-banner-label {
+  color: rgba(244, 255, 248, 0.96);
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.new-detail-send-banner-subject {
+  color: rgba(244, 255, 248, 0.64);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.68rem;
+}
+
+.new-detail-send-banner-time {
+  color: rgba(244, 255, 248, 0.88);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
 .new-empty {
   padding: 24px 20px;
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { resendWelcomeSms } from "../lib/admin-api";
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_CONTROL_URL ?? "https://fifa-control.onrender.com";
 
@@ -260,6 +261,14 @@ function getUserBarcode(user) {
   return String(user?.barcode ?? user?.qrToken ?? user?.inviteToken ?? user?.id ?? "").trim() || "Unavailable";
 }
 
+function getWelcomeSmsState(user) {
+  return {
+    deliveryStatus: String(user?.welcomeSmsDeliveryStatus ?? "").trim().toLowerCase(),
+    resentAt: String(user?.welcomeSmsResentAt ?? "").trim(),
+    sentAt: String(user?.welcomeSmsSentAt ?? "").trim(),
+  };
+}
+
 function UserAvatar({ user, className, fallbackClassName }) {
   const avatarCandidates = useMemo(() => buildAvatarCandidates(user), [user]);
   const secondaryCandidates = useMemo(() => avatarCandidates.slice(1), [avatarCandidates]);
@@ -278,6 +287,64 @@ function UserAvatar({ user, className, fallbackClassName }) {
 
 function NewDetailCard({ user, checkInBadge }) {
   const avatarCandidates = useMemo(() => buildAvatarCandidates(user), [user]);
+  const [isResending, setIsResending] = useState(false);
+  const [sendNotice, setSendNotice] = useState(null);
+  const [welcomeSmsState, setWelcomeSmsState] = useState(() => getWelcomeSmsState(user));
+
+  useEffect(() => {
+    setWelcomeSmsState(getWelcomeSmsState(user));
+    setSendNotice(null);
+  }, [user]);
+
+  const latestWelcomeSmsTime = welcomeSmsState.resentAt || welcomeSmsState.sentAt;
+  const latestWelcomeSmsLabel = latestWelcomeSmsTime ? formatValue(latestWelcomeSmsTime) : "";
+  const latestWelcomeSmsSummary =
+    welcomeSmsState.deliveryStatus === "sent"
+      ? "Welcome SMS sent"
+      : welcomeSmsState.deliveryStatus === "skipped"
+        ? "Welcome SMS skipped"
+        : welcomeSmsState.deliveryStatus === "failed"
+          ? "Welcome SMS failed"
+          : "";
+
+  async function handleResendWelcome() {
+    if (isResending) {
+      return;
+    }
+
+    setIsResending(true);
+    setSendNotice(null);
+
+    try {
+      const result = await resendWelcomeSms(user.id);
+      if (!result) {
+        throw new Error("User not found.");
+      }
+
+      setWelcomeSmsState({
+        deliveryStatus: String(result.welcomeSmsDeliveryStatus ?? "sent").trim().toLowerCase(),
+        resentAt: String(result.welcomeSmsResentAt ?? "").trim(),
+        sentAt: String(result.welcomeSmsSentAt ?? "").trim(),
+      });
+      setSendNotice({
+        tone: "success",
+        title: result.wasResent ? "Welcome SMS resent" : "Welcome SMS sent",
+        subject: "Welcome SMS",
+        detail: result.wasResent
+          ? `Latest send: ${formatValue(result.welcomeSmsResentAt)}`
+          : `Sent: ${formatValue(result.welcomeSmsSentAt || result.welcomeSmsResentAt)}`,
+      });
+    } catch (error) {
+      setSendNotice({
+        tone: "error",
+        title: "Welcome SMS failed",
+        subject: "Welcome SMS",
+        detail: error instanceof Error ? error.message : "Failed to resend welcome text.",
+      });
+    } finally {
+      setIsResending(false);
+    }
+  }
 
   return (
     <article className="new-detail-card">
@@ -341,6 +408,35 @@ function NewDetailCard({ user, checkInBadge }) {
             </dl>
           </div>
         ) : null}
+
+        <div className="new-detail-actions">
+          {latestWelcomeSmsTime ? (
+            <div className="new-detail-send-banner">
+              <span className="new-detail-send-banner-label">
+                {latestWelcomeSmsSummary || "Welcome SMS sent"}
+              </span>
+              <span className="new-detail-send-banner-subject">Welcome SMS</span>
+              <span className="new-detail-send-banner-time">{latestWelcomeSmsLabel}</span>
+            </div>
+          ) : null}
+
+          {sendNotice ? (
+            <div className={`new-detail-send-banner is-${sendNotice.tone}`}>
+              <span className="new-detail-send-banner-label">{sendNotice.title}</span>
+              <span className="new-detail-send-banner-subject">{sendNotice.subject}</span>
+              <span className="new-detail-send-banner-time">{sendNotice.detail}</span>
+            </div>
+          ) : null}
+
+          <button
+            className="secondary-button new-detail-action-button"
+            disabled={isResending || !user.phoneNumber}
+            type="button"
+            onClick={handleResendWelcome}
+          >
+            {isResending ? "Resending..." : "Resend welcome SMS"}
+          </button>
+        </div>
       </div>
     </article>
   );
