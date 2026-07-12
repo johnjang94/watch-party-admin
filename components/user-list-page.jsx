@@ -256,6 +256,10 @@ function getCheckInBadge(user) {
   return null;
 }
 
+function getUserBarcode(user) {
+  return String(user?.barcode ?? user?.qrToken ?? user?.inviteToken ?? user?.id ?? "").trim() || "Unavailable";
+}
+
 function UserAvatar({ user, className, fallbackClassName }) {
   const avatarCandidates = useMemo(() => buildAvatarCandidates(user), [user]);
   const secondaryCandidates = useMemo(() => avatarCandidates.slice(1), [avatarCandidates]);
@@ -272,7 +276,7 @@ function UserAvatar({ user, className, fallbackClassName }) {
   );
 }
 
-function NewDetailCard({ user }) {
+function NewDetailCard({ user, checkInBadge }) {
   const avatarCandidates = useMemo(() => buildAvatarCandidates(user), [user]);
 
   return (
@@ -292,17 +296,25 @@ function NewDetailCard({ user }) {
           <strong className="new-detail-name">
             {user.firstName} {user.lastName}
           </strong>
-          <span className="status-chip is-muted new-detail-chip">Guest</span>
+          <div className="new-detail-chip-group">
+            {checkInBadge ? (
+              <span className={`status-chip new-detail-chip ${checkInBadge.className}`}>
+                {checkInBadge.label}
+              </span>
+            ) : (
+              <span className="status-chip is-muted new-detail-chip">Guest</span>
+            )}
+          </div>
         </div>
 
         <dl className="new-detail-meta">
           <div>
-            <dt>Phone</dt>
-            <dd>{user.phoneNumber || "Unavailable"}</dd>
+            <dt>Barcode</dt>
+            <dd>{getUserBarcode(user)}</dd>
           </div>
           <div>
-            <dt>Joined</dt>
-            <dd>{formatValue(user.registeredAt ?? user.createdAt)}</dd>
+            <dt>Phone</dt>
+            <dd>{user.phoneNumber || "Unavailable"}</dd>
           </div>
         </dl>
 
@@ -359,12 +371,18 @@ function ExpandableUserCard({ user, isOpen, onToggle, showCheckInBadge = false }
               {user.firstName} {user.lastName}
             </strong>
             {checkInBadge ? (
-              <span className={`status-chip roster-chip ${checkInBadge.className}`}>
-                {checkInBadge.label}
-              </span>
+              isOpen ? (
+                <span
+                  className={`status-chip roster-chip ${checkInBadge.className} is-inline`}
+                >
+                  {checkInBadge.label}
+                </span>
+              ) : (
+                <span className={`status-dot ${checkInBadge.className}`} aria-hidden="true" />
+              )
             ) : null}
           </div>
-          <span className="new-list-meta">{user.phoneNumber || "Unavailable"}</span>
+          <span className="new-list-meta">Barcode {getUserBarcode(user)}</span>
         </div>
 
         <span className="new-list-arrow" aria-hidden="true">
@@ -374,7 +392,7 @@ function ExpandableUserCard({ user, isOpen, onToggle, showCheckInBadge = false }
 
       <div className="new-card-body" aria-hidden={!isOpen}>
         <div className="new-card-body-inner">
-          <NewDetailCard user={user} />
+          <NewDetailCard checkInBadge={checkInBadge} user={user} />
         </div>
       </div>
     </article>

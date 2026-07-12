@@ -46,10 +46,9 @@ export default function ProfilePage() {
     }
   });
   const [capacity, setCapacity] = useState("");
-  const [capacityUpdatedAt, setCapacityUpdatedAt] = useState("");
   const [capacitySaving, setCapacitySaving] = useState(false);
   const [capacityError, setCapacityError] = useState("");
-  const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const [photoError, setPhotoError] = useState("");
   const [phoneNumber, setPhoneNumber] = useState(() => {
     if (typeof window === "undefined") {
       return "647-553-3499";
@@ -92,8 +91,6 @@ export default function ProfilePage() {
         setCapacity(
           data.capacity === null || data.capacity === undefined ? "" : String(data.capacity),
         );
-        setCapacityUpdatedAt(data.updatedAt ?? "");
-        setSettingsLoaded(true);
       } catch (error) {
         if (!cancelled) {
           setCapacityError(error instanceof Error ? error.message : "Unable to load capacity.");
@@ -112,9 +109,14 @@ export default function ProfilePage() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const dataUrl = await readImageFile(file);
-    setPhoto(dataUrl);
-    window.localStorage.setItem("watch-party-admin-photo", dataUrl);
+    try {
+      const dataUrl = await readImageFile(file);
+      setPhoto(dataUrl);
+      setPhotoError("");
+      window.localStorage.setItem("watch-party-admin-photo", dataUrl);
+    } catch (error) {
+      setPhotoError(error instanceof Error ? error.message : "Unable to update photo.");
+    }
   }
 
   async function handleSaveCapacity() {
@@ -138,8 +140,6 @@ export default function ProfilePage() {
       setCapacity(
         data.capacity === null || data.capacity === undefined ? "" : String(data.capacity),
       );
-      setCapacityUpdatedAt(data.updatedAt ?? "");
-      setSettingsLoaded(true);
     } catch (error) {
       setCapacityError(error instanceof Error ? error.message : "Unable to update capacity.");
     } finally {
@@ -176,60 +176,61 @@ export default function ProfilePage() {
               )}
             </div>
 
-            <label className="profile-photo-button" aria-label="Change photo">
-              <svg aria-hidden="true" viewBox="0 0 24 24" className="profile-upload-icon">
-                <path d="M12 5.25 10.9 7.1H8.7A2.7 2.7 0 0 0 6 9.8v6.45A2.75 2.75 0 0 0 8.75 19h6.5A2.75 2.75 0 0 0 18 16.25V9.8a2.7 2.7 0 0 0-2.7-2.7h-2.2L12 5.25Zm0 4.25a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7Z" />
-              </svg>
-              <span>Update photo</span>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoChange}
-                className="profile-upload-input"
-              />
-            </label>
-          </div>
-
-          <div className="profile-identity-copy">
-            <h2 className="profile-name">{displayName}</h2>
-            <p className="profile-phone">{phoneNumber}</p>
+            <div className="profile-identity-copy">
+              <h2 className="profile-name">{displayName}</h2>
+              <p className="profile-phone">{phoneNumber}</p>
+              <label className="profile-photo-button" aria-label="Change photo">
+                <svg aria-hidden="true" viewBox="0 0 24 24" className="profile-upload-icon">
+                  <path d="M12 5.25 10.9 7.1H8.7A2.7 2.7 0 0 0 6 9.8v6.45A2.75 2.75 0 0 0 8.75 19h6.5A2.75 2.75 0 0 0 18 16.25V9.8a2.7 2.7 0 0 0-2.7-2.7h-2.2L12 5.25Zm0 4.25a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7Z" />
+                </svg>
+                <span>Update photo</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoChange}
+                  className="profile-upload-input"
+                />
+              </label>
+            </div>
+            {photoError ? <p className="profile-error">{photoError}</p> : null}
           </div>
         </article>
 
         <section className="profile-card profile-settings-card">
           <div className="profile-section-head">
-            <h2 className="profile-section-title">Limit guest count</h2>
+            <h2 className="profile-section-title">Total number of guests we have</h2>
           </div>
 
-          <label className="profile-field">
-            <span className="sr-only">Guest limit</span>
-            <input
-              inputMode="numeric"
-              min="1"
-              onChange={(event) => setCapacity(event.target.value)}
-              placeholder="Unlimited"
-              type="number"
-              value={capacity}
-            />
-          </label>
+          <div className="profile-capacity-row">
+            <label className="profile-field profile-capacity-field">
+              <span className="sr-only">Total number of guests we have</span>
+              <input
+                inputMode="numeric"
+                min="1"
+                onChange={(event) => setCapacity(event.target.value)}
+                placeholder="Enter number"
+                type="number"
+                value={capacity}
+              />
+            </label>
 
-          <button
-            className="profile-save-button"
-            disabled={capacitySaving || !adminKey}
-            type="button"
-            onClick={() => void handleSaveCapacity()}
-          >
-            {capacitySaving ? "Saving..." : "Save capacity"}
-          </button>
+            <button
+              className="profile-save-button profile-check-button"
+              disabled={capacitySaving || !adminKey}
+              type="button"
+              onClick={() => void handleSaveCapacity()}
+              aria-label="Save total number of guests"
+            >
+              {capacitySaving ? (
+                "..."
+              ) : (
+                <svg aria-hidden="true" viewBox="0 0 24 24" className="profile-check-icon">
+                  <path d="M9.2 16.2 4.9 11.9l-1.4 1.4 5.7 5.7L20.5 7.7l-1.4-1.4z" />
+                </svg>
+              )}
+            </button>
+          </div>
 
-          <p className="profile-meta">
-            {settingsLoaded && capacity !== "" ? `Capacity set to ${capacity}` : "Capacity is unlimited"}
-          </p>
-          <p className="profile-meta">
-            {capacityUpdatedAt
-              ? `Last updated ${new Date(capacityUpdatedAt).toLocaleString()}`
-              : "Capacity has not been updated yet."}
-          </p>
           {capacityError ? <p className="profile-error">{capacityError}</p> : null}
         </section>
 

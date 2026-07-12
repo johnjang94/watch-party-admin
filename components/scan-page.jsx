@@ -88,6 +88,7 @@ export function ScanPage() {
   const [checkInError, setCheckInError] = useState("");
   const [isCheckInBusy, setIsCheckInBusy] = useState(false);
   const [isManualBusy, setIsManualBusy] = useState(false);
+  const [showManualEntry, setShowManualEntry] = useState(false);
   const [activeGuest, setActiveGuest] = useState(null);
 
   const stopCamera = useCallback(async () => {
@@ -131,6 +132,7 @@ export function ScanPage() {
       setLookupMessage("");
       setCheckInMessage("");
       setCheckInError("");
+      setShowManualEntry(false);
       await stopCamera();
       return user;
     },
@@ -141,7 +143,7 @@ export function ScanPage() {
     if (!supportsCamera || activeGuest) {
       if (!supportsCamera) {
         setCameraState("unavailable");
-        setCameraMessage("Camera unavailable. Use barcode.");
+        setCameraMessage("Camera unavailable.");
       }
 
       return;
@@ -170,14 +172,14 @@ export function ScanPage() {
 
       if (!supportsAutoScan) {
         setCameraState("preview");
-        setCameraMessage("Preview only. Use barcode.");
+        setCameraMessage("Camera preview.");
         return;
       }
 
       const detector = detectorRef.current ?? new window.BarcodeDetector({ formats: ["qr_code"] });
       detectorRef.current = detector;
       setCameraState("ready");
-      setCameraMessage("Point at the QR code.");
+      setCameraMessage("Ready to scan.");
 
       const scanFrame = async () => {
         if (!videoRef.current || !detectorRef.current || !streamRef.current || activeGuest) {
@@ -214,8 +216,8 @@ export function ScanPage() {
       setCameraState("error");
       setCameraMessage(
         error instanceof Error && error.name === "NotAllowedError"
-          ? "Camera permission denied. Use barcode."
-          : "Camera failed. Use barcode.",
+          ? "Camera permission denied."
+          : "Camera failed.",
       );
     }
   }, [activeGuest, processLookup, stopCamera, supportsAutoScan, supportsCamera]);
@@ -227,6 +229,7 @@ export function ScanPage() {
     setLookupMessage("");
     setCheckInMessage("");
     setCheckInError("");
+    setShowManualEntry(false);
     resumeTimerRef.current = setTimeout(() => {
       void openCamera();
     }, 250);
@@ -289,7 +292,7 @@ export function ScanPage() {
   useEffect(() => {
     if (!supportsCamera) {
       setCameraState("unavailable");
-      setCameraMessage("This browser cannot open the camera. Use the barcode below.");
+      setCameraMessage("This browser cannot open the camera.");
       return undefined;
     }
 
@@ -325,41 +328,51 @@ export function ScanPage() {
                 ? isCheckedIn(activeGuest)
                   ? "Checked in."
                   : "Verified."
-                : cameraMessage || "Ready."}
+                : cameraMessage || "Scan the QR code"}
             </p>
 
-            {!supportsAutoScan && supportsCamera ? (
-              <p className="scan-note">Preview only.</p>
+            {!activeGuest ? <p className="scan-instruction">Scan the QR code</p> : null}
+
+            {!activeGuest ? (
+              <button
+                className="scan-toggle"
+                type="button"
+                onClick={() => setShowManualEntry((current) => !current)}
+              >
+                can&apos;t scan the QR code?
+              </button>
             ) : null}
 
             {lookupMessage ? <p className="scan-note">{lookupMessage}</p> : null}
 
             {manualError ? <p className="scan-error">{manualError}</p> : null}
 
-            <form className="scan-manual" onSubmit={handleBarcodeSubmit}>
-              <label className="scan-input-label" htmlFor="barcode-input">
-                <span className="sr-only">Barcode</span>
-                <input
-                  autoComplete="off"
-                  className="field-input scan-input"
+            {!activeGuest && showManualEntry ? (
+              <form className="scan-manual" onSubmit={handleBarcodeSubmit}>
+                <label className="scan-input-label" htmlFor="barcode-input">
+                  <span className="sr-only">Barcode</span>
+                  <input
+                    autoComplete="off"
+                    className="field-input scan-input"
+                    disabled={isManualBusy || Boolean(activeGuest)}
+                    id="barcode-input"
+                    inputMode="numeric"
+                    maxLength={5}
+                    onChange={(event) => setManualBarcode(event.target.value)}
+                    placeholder="5 digits"
+                    type="text"
+                    value={manualBarcode}
+                  />
+                </label>
+                <button
+                  className="primary-button scan-submit"
                   disabled={isManualBusy || Boolean(activeGuest)}
-                  id="barcode-input"
-                  inputMode="numeric"
-                  maxLength={5}
-                  onChange={(event) => setManualBarcode(event.target.value)}
-                  placeholder="5 digits"
-                  type="text"
-                  value={manualBarcode}
-                />
-              </label>
-              <button
-                className="primary-button scan-submit"
-                disabled={isManualBusy || Boolean(activeGuest)}
-                type="submit"
-              >
-                {isManualBusy ? "checking..." : "verify barcode"}
-              </button>
-            </form>
+                  type="submit"
+                >
+                  {isManualBusy ? "checking..." : "verify barcode"}
+                </button>
+              </form>
+            ) : null}
           </div>
         </article>
 

@@ -21,9 +21,6 @@ export default function DashboardPage() {
         <div className="page-background-overlay" />
       </div>
       <section className="overview-shell">
-        <header className="dashboard-hero">
-          <h1 className="dashboard-title-main">dashboard</h1>
-        </header>
         <DashboardCarousel />
       </section>
     </main>

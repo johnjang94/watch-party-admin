@@ -46,6 +46,25 @@ function getInquiryTimestamp(item) {
   return 0;
 }
 
+function formatSearchDate(value) {
+  if (!value) return "";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return String(value).toLowerCase();
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  })
+    .format(date)
+    .toLowerCase();
+}
+
 function getInquiryGroupKey(item) {
   return (
     String(item.inviteId ?? item.inviteToken ?? item.phoneNumber ?? item.customer ?? item.id ?? "").trim() ||
@@ -89,24 +108,67 @@ function buildInquiryGroups(items) {
     .sort((a, b) => b.latestAt - a.latestAt);
 }
 
-function matchesInquiryGroup(group, query) {
+function matchesInquiryGroup(group, query, filterMode) {
   const value = query.trim().toLowerCase();
   if (!value) return true;
 
-  const fields = [
+  const inquiries = group.inquiries ?? [];
+
+  const getAllFields = () => [
     group.customer,
     group.phoneNumber,
     group.inviteId,
-    ...(group.inquiries ?? []).flatMap((item) => [
+    group.id,
+    formatSearchDate(group.latestAt ? new Date(group.latestAt).toISOString() : ""),
+    ...inquiries.flatMap((item) => [
       item.question,
       item.answer,
       item.requestReason,
       item.status,
       item.currentAgent,
       item.assignedTo,
-      ...(item.thread ?? []).flatMap((line) => [line.message, line.role]),
+      item.inviteId,
+      item.phoneNumber,
+      item.id,
+      formatSearchDate(item.createdAt),
+      formatSearchDate(item.updatedAt),
+      formatSearchDate(item.humanRequestedAt),
+      ...(item.thread ?? []).flatMap((line) => [
+        line.message,
+        line.role,
+        formatSearchDate(line.createdAt),
+      ]),
     ]),
-  ]
+  ];
+
+  const fieldsByFilter = {
+    all: getAllFields(),
+    name: [group.customer],
+    phone: [group.phoneNumber, ...inquiries.map((item) => item.phoneNumber)],
+    id: [group.inviteId, group.id, ...inquiries.flatMap((item) => [item.inviteId, item.id])],
+    keyword: [
+      ...inquiries.flatMap((item) => [
+        item.question,
+        item.answer,
+        item.requestReason,
+        item.status,
+        item.currentAgent,
+        item.assignedTo,
+        ...(item.thread ?? []).flatMap((line) => [line.message, line.role]),
+      ]),
+    ],
+    date: [
+      formatSearchDate(group.latestAt ? new Date(group.latestAt).toISOString() : ""),
+      ...inquiries.flatMap((item) => [
+        formatSearchDate(item.createdAt),
+        formatSearchDate(item.updatedAt),
+        formatSearchDate(item.humanRequestedAt),
+        ...(item.thread ?? []).flatMap((line) => [formatSearchDate(line.createdAt)]),
+      ]),
+    ],
+  };
+
+  const fields = (fieldsByFilter[filterMode] ?? fieldsByFilter.all)
     .filter(Boolean)
     .map((entry) => String(entry).toLowerCase());
 
@@ -153,13 +215,25 @@ export function InquiryPage({ inquiries }) {
   const [savingId, setSavingId] = useState("");
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
+  const [submittedQuery, setSubmittedQuery] = useState("");
+  const [filterMode, setFilterMode] = useState("all");
 
   const inquiryGroups = useMemo(() => buildInquiryGroups(items), [items]);
-  const visibleGroups = useMemo(
-    () => inquiryGroups.filter((group) => matchesInquiryGroup(group, query)),
-    [inquiryGroups, query],
-  );
+  const visibleGroups = useMemo(() => {
+    const trimmedQuery = submittedQuery.trim();
+    if (!trimmedQuery) {
+      return inquiryGroups;
+    }
+
+    return inquiryGroups.filter((group) => matchesInquiryGroup(group, trimmedQuery, filterMode));
+  }, [inquiryGroups, submittedQuery, filterMode]);
+  const isSearchActive = Boolean(submittedQuery.trim());
   const resolvedExpandedId = visibleGroups.some((group) => group.id === expandedId) ? expandedId : "";
+
+  function handleSearch(event) {
+    event.preventDefault();
+    setSubmittedQuery(query.trim());
+  }
 
   function toggleGroup(id) {
     setExpandedId((current) => (current === id ? "" : id));
@@ -255,26 +329,47 @@ export function InquiryPage({ inquiries }) {
           <div className="screen-heading new-heading inquiry-heading">
             <h1 className="screen-title">Live queue</h1>
           </div>
-          <p className="new-summary">
-            {visibleGroups.length ? `${visibleGroups.length} guests` : "No guests yet"}
-          </p>
         </header>
 
-        <div className="all-toolbar inquiry-toolbar">
-          <p className="all-count">
-            {visibleGroups.length ? `${visibleGroups.length} guests` : "No guests yet"}
-          </p>
+        <form className="inquiry-toolbar" onSubmit={handleSearch}>
+          <label className="sr-only" htmlFor="inquiry-search-input">
+            Search inquiries
+          </label>
+
+          <button className="inquiry-search-button" type="submit" aria-label="Search inquiries">
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M10.5 4a6.5 6.5 0 1 1 4.1 11.55l4.07 4.07-1.41 1.41-4.07-4.07A6.5 6.5 0 0 1 10.5 4Zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z" />
+            </svg>
+          </button>
 
           <label className="all-search-field inquiry-search-field">
-            <span className="sr-only">Search guests</span>
+            <span className="sr-only">Search inquiries</span>
             <input
-              className="field-input all-search-input inquiry-search-input"
-              placeholder="Search"
+              id="inquiry-search-input"
+              className="field-input inquiry-search-input"
+              placeholder="Search inquiries"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />
           </label>
-        </div>
+
+          <label className="sr-only" htmlFor="inquiry-filter-select">
+            Search filter
+          </label>
+          <select
+            id="inquiry-filter-select"
+            className="field-input inquiry-filter-select"
+            value={filterMode}
+            onChange={(event) => setFilterMode(event.target.value)}
+          >
+            <option value="all">All fields</option>
+            <option value="name">Name</option>
+            <option value="phone">Phone</option>
+            <option value="id">ID</option>
+            <option value="keyword">Keyword</option>
+            <option value="date">Date</option>
+          </select>
+        </form>
 
         {error ? <p className="inquiry-error">{error}</p> : null}
 
@@ -401,7 +496,7 @@ export function InquiryPage({ inquiries }) {
 
         {!visibleGroups.length ? (
           <div className="inquiry-empty-thread inquiry-empty-search">
-            No matches.
+            {isSearchActive ? "No matches." : "No inquiries have been found"}
           </div>
         ) : null}
       </section>
