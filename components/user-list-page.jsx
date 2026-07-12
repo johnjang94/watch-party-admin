@@ -269,6 +269,18 @@ function getWelcomeSmsState(user) {
   };
 }
 
+function getPrivacyPolicyState(user) {
+  const accepted = Boolean(user?.privacyPolicyAccepted ?? user?.privacyAccepted);
+  const acceptedAt = String(
+    user?.privacyPolicyAcceptedAt ?? user?.privacyAcceptedAt ?? user?.privacyConsentAt ?? "",
+  ).trim();
+
+  return {
+    accepted,
+    acceptedAt,
+  };
+}
+
 function UserAvatar({ user, className, fallbackClassName }) {
   const avatarCandidates = useMemo(() => buildAvatarCandidates(user), [user]);
   const secondaryCandidates = useMemo(() => avatarCandidates.slice(1), [avatarCandidates]);
@@ -290,6 +302,7 @@ function NewDetailCard({ user, checkInBadge }) {
   const [isResending, setIsResending] = useState(false);
   const [sendNotice, setSendNotice] = useState(null);
   const [welcomeSmsState, setWelcomeSmsState] = useState(() => getWelcomeSmsState(user));
+  const privacyPolicyState = useMemo(() => getPrivacyPolicyState(user), [user]);
 
   useEffect(() => {
     setWelcomeSmsState(getWelcomeSmsState(user));
@@ -385,6 +398,13 @@ function NewDetailCard({ user, checkInBadge }) {
           <div>
             <dt>Phone</dt>
             <dd>{user.phoneNumber || "Unavailable"}</dd>
+          </div>
+          <div>
+            <dt>Privacy</dt>
+            <dd>
+              {privacyPolicyState.accepted ? "Accepted" : "Not accepted"}
+              {privacyPolicyState.acceptedAt ? ` · ${formatValue(privacyPolicyState.acceptedAt)}` : ""}
+            </dd>
           </div>
         </dl>
 
