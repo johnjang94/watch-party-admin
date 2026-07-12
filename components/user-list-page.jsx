@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { getStoredAdminKey, resendWelcomeSms } from "../lib/admin-api";
+import { resendWelcomeSms } from "../lib/admin-api";
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_CONTROL_URL ?? "https://fifa-control.onrender.com";
 
@@ -269,21 +269,6 @@ function getWelcomeSmsState(user) {
   };
 }
 
-function AdminKeyField({ value, onChange }) {
-  return (
-    <label className="new-admin-key-field">
-      <span className="sr-only">Admin key</span>
-      <input
-        autoComplete="off"
-        onChange={(event) => onChange(event.target.value)}
-        placeholder="Admin key"
-        type="password"
-        value={value}
-      />
-    </label>
-  );
-}
-
 function UserAvatar({ user, className, fallbackClassName }) {
   const avatarCandidates = useMemo(() => buildAvatarCandidates(user), [user]);
   const secondaryCandidates = useMemo(() => avatarCandidates.slice(1), [avatarCandidates]);
@@ -300,7 +285,7 @@ function UserAvatar({ user, className, fallbackClassName }) {
   );
 }
 
-function NewDetailCard({ user, checkInBadge, adminKey }) {
+function NewDetailCard({ user, checkInBadge }) {
   const avatarCandidates = useMemo(() => buildAvatarCandidates(user), [user]);
   const [isResending, setIsResending] = useState(false);
   const [sendNotice, setSendNotice] = useState(null);
@@ -327,21 +312,11 @@ function NewDetailCard({ user, checkInBadge, adminKey }) {
       return;
     }
 
-    if (!adminKey) {
-      setSendNotice({
-        tone: "error",
-        title: "Admin key required",
-        subject: "Welcome SMS",
-        detail: "Load the dashboard with a valid admin key first.",
-      });
-      return;
-    }
-
     setIsResending(true);
     setSendNotice(null);
 
     try {
-      const result = await resendWelcomeSms(user.id, adminKey);
+      const result = await resendWelcomeSms(user.id);
       if (!result) {
         throw new Error("User not found.");
       }
@@ -363,10 +338,10 @@ function NewDetailCard({ user, checkInBadge, adminKey }) {
       const message = error instanceof Error ? error.message : "Failed to resend welcome text.";
       setSendNotice({
         tone: "error",
-        title: /unauthorized/i.test(message) ? "Admin key required" : "Welcome SMS failed",
+        title: /unauthorized/i.test(message) ? "Admin session required" : "Welcome SMS failed",
         subject: "Welcome SMS",
         detail: /unauthorized/i.test(message)
-          ? "Enter a valid admin key above."
+          ? "Log in to the admin dashboard first."
           : message,
       });
     } finally {
@@ -464,14 +439,13 @@ function NewDetailCard({ user, checkInBadge, adminKey }) {
           >
             {isResending ? "Resending..." : "Resend welcome SMS"}
           </button>
-          {!adminKey ? <p className="new-detail-action-helper">Enter an admin key above.</p> : null}
         </div>
       </div>
     </article>
   );
 }
 
-function ExpandableUserCard({ user, isOpen, onToggle, showCheckInBadge = false, adminKey }) {
+function ExpandableUserCard({ user, isOpen, onToggle, showCheckInBadge = false }) {
   const checkInBadge = showCheckInBadge ? getCheckInBadge(user) : null;
 
   return (
@@ -517,7 +491,7 @@ function ExpandableUserCard({ user, isOpen, onToggle, showCheckInBadge = false, 
 
       <div className="new-card-body" aria-hidden={!isOpen}>
         <div className="new-card-body-inner">
-          <NewDetailCard adminKey={adminKey} checkInBadge={checkInBadge} user={user} />
+          <NewDetailCard checkInBadge={checkInBadge} user={user} />
         </div>
       </div>
     </article>
@@ -527,15 +501,6 @@ function ExpandableUserCard({ user, isOpen, onToggle, showCheckInBadge = false, 
 function NewListView({ title, users }) {
   const hasUsers = users.length > 0;
   const [selectedId, setSelectedId] = useState("");
-  const [adminKey, setAdminKey] = useState(() => getStoredAdminKey());
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem("fifa-admin-access-key", adminKey);
-    } catch {
-      // Best effort only.
-    }
-  }, [adminKey]);
 
   return (
     <main className="page-root detail-page new-page">
@@ -544,10 +509,7 @@ function NewListView({ title, users }) {
           <div className="screen-heading new-heading">
             <h1 className="screen-title">{title}</h1>
           </div>
-          <div className="new-summary-row">
-            <p className="new-summary">{hasUsers ? `${users.length} guests` : "No guests yet"}</p>
-            <AdminKeyField value={adminKey} onChange={setAdminKey} />
-          </div>
+          <p className="new-summary">{hasUsers ? `${users.length} guests` : "No guests yet"}</p>
         </header>
 
         {hasUsers ? (
@@ -559,7 +521,6 @@ function NewListView({ title, users }) {
 
                   return (
                     <ExpandableUserCard
-                      adminKey={adminKey}
                       isOpen={isActive}
                       key={user.id}
                       onToggle={() =>
@@ -587,20 +548,11 @@ function AllListView({ title, users }) {
   const hasUsers = users.length > 0;
   const [selectedId, setSelectedId] = useState("");
   const [query, setQuery] = useState("");
-  const [adminKey, setAdminKey] = useState(() => getStoredAdminKey());
 
   const visibleUsers = useMemo(
     () => users.filter((user) => matchesUser(user, query)),
     [query, users],
   );
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem("fifa-admin-access-key", adminKey);
-    } catch {
-      // Best effort only.
-    }
-  }, [adminKey]);
 
   const hasResults = visibleUsers.length > 0;
 
@@ -613,7 +565,6 @@ function AllListView({ title, users }) {
           </div>
           <div className="all-toolbar">
             <p className="all-count">{hasUsers ? `${visibleUsers.length} guests` : "No guests yet"}</p>
-            <AdminKeyField value={adminKey} onChange={setAdminKey} />
 
             <label className="all-search-field">
               <span className="sr-only">Search guests</span>
@@ -634,7 +585,6 @@ function AllListView({ title, users }) {
                 {visibleUsers.map((user) => {
                   return (
                     <ExpandableUserCard
-                      adminKey={adminKey}
                       isOpen={selectedId === user.id}
                       key={user.id}
                       onToggle={() =>
