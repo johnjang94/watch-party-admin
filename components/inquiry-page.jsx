@@ -1,53 +1,113 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const apiBaseUrl =
   process.env.NEXT_PUBLIC_CONTROL_URL ?? "https://fifa-control.onrender.com";
 
-function formatTime(value) {
-  if (!value) return "Unknown time";
+function normalize(value) {
+  return String(value ?? "").trim();
+}
+
+function normalizeAvatarSource(raw) {
+  if (!raw) {
+    return null;
+  }
+
+  if (typeof raw === "object") {
+    const directCandidates = [
+      raw.url,
+      raw.src,
+      raw.downloadUrl,
+      raw.downloadURL,
+      raw.avatarUrl,
+      raw.profilePhotoUrl,
+      raw.photoUrl,
+      raw.path,
+      raw.value,
+    ];
+
+    for (const candidate of directCandidates) {
+      const normalized = normalizeAvatarSource(candidate);
+      if (normalized) {
+        return normalized;
+      }
+    }
+
+    return null;
+  }
+
+  const value = normalize(raw);
+  if (!value || value === "[object Object]" || value === "null" || value === "undefined") {
+    return null;
+  }
+
+  if (
+    value.startsWith("http://") ||
+    value.startsWith("https://") ||
+    value.startsWith("data:") ||
+    value.startsWith("blob:")
+  ) {
+    return value;
+  }
+
+  if (value.startsWith("//")) {
+    return `https:${value}`;
+  }
+
+  if (value.startsWith("firebasestorage.googleapis.com/") || value.startsWith("storage.googleapis.com/")) {
+    return `https://${value}`;
+  }
+
+  try {
+    return new URL(value, apiBaseUrl).toString();
+  } catch {
+    return value.startsWith("/") ? value : `/${value}`;
+  }
+}
+
+function formatTime(value, options = {}) {
+  const { fallback = "Unknown time", ...formatOptions } = options;
+
+  if (!value) {
+    return fallback;
+  }
+
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
 
   return new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
+    ...formatOptions,
   }).format(date);
 }
 
-function resolveAvatar(item) {
-  if (typeof item.customerPhotoUrl === "string") {
-    return item.customerPhotoUrl;
+function formatThreadDate(value) {
+  if (!value) {
+    return "recent thread";
   }
 
-  if (typeof item.profilePhotoUrl === "string") {
-    return item.profilePhotoUrl;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
   }
 
-  if (typeof item.avatar === "string") {
-    return item.avatar;
-  }
-
-  return item.avatar?.src ?? null;
-}
-
-function getInquiryTimestamp(item) {
-  const candidates = [item.updatedAt, item.humanRequestedAt, item.createdAt];
-  for (const candidate of candidates) {
-    const time = new Date(candidate).getTime();
-    if (Number.isFinite(time) && time > 0) {
-      return time;
-    }
-  }
-
-  return 0;
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(date);
 }
 
 function formatSearchDate(value) {
-  if (!value) return "";
+  if (!value) {
+    return "";
+  }
 
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
@@ -65,11 +125,119 @@ function formatSearchDate(value) {
     .toLowerCase();
 }
 
+function initialsFromName(value) {
+  const parts = normalize(value)
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (!parts.length) {
+    return "?";
+  }
+
+  return parts
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join("");
+}
+
+function makeSummary(item) {
+  return item?.question || item?.answer || "New support ticket";
+}
+
+function makeReason(item) {
+  return String(item?.requestReason ?? "").trim();
+}
+
+function getInquiryTimestamp(item) {
+  const candidates = [item?.updatedAt, item?.humanRequestedAt, item?.createdAt];
+  for (const candidate of candidates) {
+    const time = new Date(candidate).getTime();
+    if (Number.isFinite(time) && time > 0) {
+      return time;
+    }
+  }
+
+  return 0;
+}
+
+function parseTimestamp(value) {
+  const time = new Date(value).getTime();
+  return Number.isFinite(time) ? time : 0;
+}
+
+function getThreadRole(entry) {
+  const role = normalize(entry?.role).toLowerCase();
+  if (role === "agent" || role === "assistant" || role === "admin") {
+    return "agent";
+  }
+
+  return "customer";
+}
+
+function getThreadLastTimestamp(thread, role) {
+  return Math.max(
+    ...(Array.isArray(thread)
+      ? thread
+          .filter((entry) => getThreadRole(entry) === role)
+          .map((entry) => parseTimestamp(entry?.createdAt))
+      : [0]),
+    0,
+  );
+}
+
+function getThreadReadState(item) {
+  const thread = Array.isArray(item?.thread) ? item.thread : [];
+  const lastAgentAt = getThreadLastTimestamp(thread, "agent");
+  const lastCustomerAt = getThreadLastTimestamp(thread, "customer");
+  const supportChatReadAt = parseTimestamp(item?.supportChatReadAt);
+  const hasUnreadCustomerMessage = lastCustomerAt > lastAgentAt;
+  const userHasReadLatestAdminMessage = Boolean(lastAgentAt) && supportChatReadAt >= lastAgentAt;
+
+  return {
+    lastAgentAt,
+    lastCustomerAt,
+    supportChatReadAt,
+    hasUnreadCustomerMessage,
+    userHasReadLatestAdminMessage,
+  };
+}
+
 function getInquiryGroupKey(item) {
   return (
-    String(item.inviteId ?? item.inviteToken ?? item.phoneNumber ?? item.customer ?? item.id ?? "").trim() ||
-    item.id
+    String(item?.inviteId ?? item?.inviteToken ?? item?.phoneNumber ?? item?.customer ?? item?.id ?? "").trim() ||
+    item?.id
   );
+}
+
+function buildAvatarCandidates(...sources) {
+  const seen = new Set();
+  const candidates = [];
+
+  function addCandidate(value) {
+    const normalized = normalizeAvatarSource(value);
+    if (!normalized || seen.has(normalized)) {
+      return;
+    }
+
+    seen.add(normalized);
+    candidates.push(normalized);
+  }
+
+  for (const source of sources.flat()) {
+    addCandidate(source?.customerPhotoUrl);
+    addCandidate(source?.profilePhotoUrl);
+    addCandidate(source?.avatarUrl);
+    addCandidate(source?.avatar?.url);
+    addCandidate(source?.avatar);
+    addCandidate(source?.photoUrl);
+    addCandidate(source?.photo);
+    addCandidate(source?.profilePhoto?.url);
+    addCandidate(source?.profilePhoto);
+    addCandidate(source?.picture);
+    addCandidate(source?.profilePicture);
+  }
+
+  return candidates;
 }
 
 function buildInquiryGroups(items) {
@@ -81,14 +249,19 @@ function buildInquiryGroups(items) {
       id: groupKey,
       inviteId: String(item.inviteId ?? item.inviteToken ?? "").trim(),
       customer: item.customer || "Unknown guest",
-      customerPhotoUrl: item.customerPhotoUrl ?? null,
+      customerPhotoUrl: item.customerPhotoUrl ?? item.profilePhotoUrl ?? null,
       phoneNumber: item.phoneNumber || "",
       latestAt: 0,
       inquiries: [],
     };
 
     current.customer = current.customer || item.customer || "Unknown guest";
-    current.customerPhotoUrl = current.customerPhotoUrl || item.customerPhotoUrl || null;
+    current.customerPhotoUrl =
+      current.customerPhotoUrl ||
+      item.customerPhotoUrl ||
+      item.profilePhotoUrl ||
+      buildAvatarCandidates(item)[0] ||
+      null;
     current.phoneNumber = current.phoneNumber || item.phoneNumber || "";
     current.inquiries.push(item);
     current.latestAt = Math.max(current.latestAt, getInquiryTimestamp(item));
@@ -96,21 +269,26 @@ function buildInquiryGroups(items) {
   }
 
   return [...groups.values()]
-    .map((group) => ({
-      ...group,
-      inquiries: group.inquiries
+    .map((group) => {
+      const inquiries = group.inquiries
         .slice()
-        .sort((a, b) => getInquiryTimestamp(b) - getInquiryTimestamp(a)),
-      latestInquiry: group.inquiries
-        .slice()
-        .sort((a, b) => getInquiryTimestamp(b) - getInquiryTimestamp(a))[0] ?? null,
-    }))
+        .sort((a, b) => getInquiryTimestamp(b) - getInquiryTimestamp(a));
+
+      return {
+        ...group,
+        inquiries,
+        latestInquiry: inquiries[0] ?? null,
+        avatarCandidates: buildAvatarCandidates(group, inquiries),
+      };
+    })
     .sort((a, b) => b.latestAt - a.latestAt);
 }
 
 function matchesInquiryGroup(group, query, filterMode) {
   const value = query.trim().toLowerCase();
-  if (!value) return true;
+  if (!value) {
+    return true;
+  }
 
   const inquiries = group.inquiries ?? [];
 
@@ -133,11 +311,7 @@ function matchesInquiryGroup(group, query, filterMode) {
       formatSearchDate(item.createdAt),
       formatSearchDate(item.updatedAt),
       formatSearchDate(item.humanRequestedAt),
-      ...(item.thread ?? []).flatMap((line) => [
-        line.message,
-        line.role,
-        formatSearchDate(line.createdAt),
-      ]),
+      ...(item.thread ?? []).flatMap((line) => [line.message, line.role, formatSearchDate(line.createdAt)]),
     ]),
   ];
 
@@ -175,35 +349,90 @@ function matchesInquiryGroup(group, query, filterMode) {
   return fields.some((entry) => entry.includes(value));
 }
 
-function makeSummary(item) {
-  return item.question || item.answer || "New support ticket";
+function getThreadCustomerName(group, item) {
+  return normalize(item?.customer || group?.customer || "Unknown guest") || "Unknown guest";
 }
 
-function makeReason(item) {
-  return String(item.requestReason ?? "").trim();
+function getThreadPreview(item) {
+  const preview = item?.thread?.find((line) => normalize(line?.message))?.message || makeSummary(item);
+  return normalize(preview);
 }
 
-function formatInquiryLabel(item) {
-  if (!item) return "No conversations yet";
+function getThreadTitle(item) {
+  return normalize(item?.summaryTitle || item?.question || item?.answer || "New support ticket");
+}
 
-  const createdAt = item.createdAt || item.updatedAt || item.humanRequestedAt;
-  const time = new Date(createdAt);
+function getThreadLabel(item) {
+  return formatThreadDate(item?.createdAt || item?.updatedAt || item?.humanRequestedAt);
+}
 
-  if (Number.isNaN(time.getTime())) {
-    return "Most recent";
+function getThreadMessageName(role, group, item) {
+  if (getThreadRole({ role }) === "agent") {
+    return item?.currentAgent || item?.assignedTo || "Admin";
   }
 
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(time);
+  return getThreadCustomerName(group, item);
+}
+
+function getThreadStatusLabel(item, { isSending = false } = {}) {
+  if (isSending) {
+    return "Sending";
+  }
+
+  const readState = getThreadReadState(item);
+
+  if (readState.userHasReadLatestAdminMessage) {
+    return "Read";
+  }
+
+  if (readState.lastAgentAt && readState.supportChatReadAt < readState.lastAgentAt) {
+    return item?.humanConnectionSmsSentAt ? "Notified" : "Delivered";
+  }
+
+  return "Delivered";
+}
+
+function InquiryAvatar({ alt, candidates, fallbackText, className = "inquiry-avatar" }) {
+  const [candidateIndex, setCandidateIndex] = useState(0);
+  const [failed, setFailed] = useState(false);
+  const candidateSignature = (candidates ?? []).join("||");
+
+  useEffect(() => {
+    setCandidateIndex(0);
+    setFailed(false);
+  }, [candidateSignature]);
+
+  const currentSrc = (candidates ?? [])[candidateIndex] ?? null;
+
+  if (!currentSrc || failed) {
+    return (
+      <div className={`${className} inquiry-avatar-fallback`} aria-hidden="true">
+        {fallbackText}
+      </div>
+    );
+  }
+
+  return (
+    <img
+      alt={alt}
+      className={className}
+      src={currentSrc}
+      onError={() => {
+        if (candidateIndex + 1 < (candidates?.length ?? 0)) {
+          setCandidateIndex((current) => current + 1);
+          return;
+        }
+
+        setFailed(true);
+      }}
+    />
+  );
 }
 
 export function InquiryPage({ inquiries }) {
   const [items, setItems] = useState(() => inquiries);
-  const [expandedId, setExpandedId] = useState("");
+  const [selectedGroupId, setSelectedGroupId] = useState("");
+  const [selectedThreadId, setSelectedThreadId] = useState("");
   const [drafts, setDrafts] = useState({});
   const [adminKey, setAdminKey] = useState(() => {
     if (typeof window === "undefined") {
@@ -228,19 +457,47 @@ export function InquiryPage({ inquiries }) {
     return inquiryGroups.filter((group) => matchesInquiryGroup(group, trimmedQuery, filterMode));
   }, [inquiryGroups, submittedQuery, filterMode]);
   const isSearchActive = Boolean(submittedQuery.trim());
-  const resolvedExpandedId = visibleGroups.some((group) => group.id === expandedId) ? expandedId : "";
+  const selectedGroup =
+    inquiryGroups.find((group) => group.id === selectedGroupId) ??
+    visibleGroups.find((group) => group.id === selectedGroupId) ??
+    null;
+  const selectedThread =
+    selectedGroup?.inquiries.find((item) => item.id === selectedThreadId) ??
+    items.find((item) => item.id === selectedThreadId) ??
+    null;
+  const detailCandidates = selectedGroup
+    ? buildAvatarCandidates(selectedGroup, selectedThread)
+    : [];
+
+  useEffect(() => {
+    if (selectedThreadId && !items.some((item) => item.id === selectedThreadId)) {
+      setSelectedThreadId("");
+      setSelectedGroupId("");
+    }
+  }, [items, selectedThreadId]);
 
   function handleSearch(event) {
     event.preventDefault();
     setSubmittedQuery(query.trim());
   }
 
-  function toggleGroup(id) {
-    setExpandedId((current) => (current === id ? "" : id));
-    const target = inquiryGroups.find((group) => group.id === id)?.latestInquiry;
-    if (target && !target.humanAcknowledgedAt) {
-      void acknowledgeItem(target);
+  function openThread(groupId, threadId) {
+    const group = inquiryGroups.find((entry) => entry.id === groupId);
+    const thread = group?.inquiries.find((entry) => entry.id === threadId);
+    if (!group || !thread) {
+      return;
     }
+
+    setSelectedGroupId(group.id);
+    setSelectedThreadId(thread.id);
+    if (!thread.humanAcknowledgedAt) {
+      void acknowledgeItem(thread);
+    }
+  }
+
+  function backToList() {
+    setSelectedGroupId("");
+    setSelectedThreadId("");
   }
 
   function updateDraft(id, value) {
@@ -283,7 +540,8 @@ export function InquiryPage({ inquiries }) {
           current.map((entry) => (entry.id === item.id ? data.inquiry : entry)),
         );
         updateDraft(item.id, "");
-        setExpandedId(getInquiryGroupKey(data.inquiry));
+        setSelectedGroupId(getInquiryGroupKey(data.inquiry));
+        setSelectedThreadId(data.inquiry.id);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to save reply.");
@@ -322,183 +580,275 @@ export function InquiryPage({ inquiries }) {
     }
   }
 
-  return (
-    <main className="page-root detail-page inquiry-page">
-      <section className="screen-shell inquiry-shell">
-        <header className="new-topbar inquiry-topbar">
-          <div className="screen-heading new-heading inquiry-heading">
-            <h1 className="screen-title">Live queue</h1>
+  function renderThreadMessages(thread, group, item) {
+    if (!thread?.length) {
+      return <div className="inquiry-empty-thread">No messages yet.</div>;
+    }
+
+    return thread.map((line, index) => {
+      const isAgent = getThreadRole(line) === "agent";
+      const messageName = getThreadMessageName(line.role, group, item);
+      const candidateSet = isAgent ? [] : buildAvatarCandidates(group, item);
+      const isLatestAgentMessage = isAgent && getThreadLastTimestamp(thread, "agent") === parseTimestamp(line.createdAt);
+      const statusLabel = isLatestAgentMessage
+        ? getThreadStatusLabel(item, { isSending: savingId === item.id })
+        : "";
+
+      return (
+        <article className={`inquiry-message ${isAgent ? "is-agent" : "is-customer"}`} key={`${item.id}-${index}`}>
+          <header className="inquiry-message-header">
+            <div className="inquiry-message-identity">
+              <div className={`inquiry-message-avatar ${isAgent ? "is-agent" : "is-customer"}`} aria-hidden="true">
+                {isAgent ? (
+                  "A"
+                ) : (
+                  <InquiryAvatar
+                    alt=""
+                    candidates={candidateSet}
+                    fallbackText={initialsFromName(messageName)}
+                    className="inquiry-message-avatar-image"
+                  />
+                )}
+              </div>
+              <span className="inquiry-message-copy">
+                <strong>{messageName}</strong>
+                <span>{isAgent ? "admin reply" : "customer message"}</span>
+              </span>
+            </div>
+            <time dateTime={line.createdAt || ""}>{formatTime(line.createdAt, { fallback: "" })}</time>
+          </header>
+          <p>{line.message}</p>
+          {isLatestAgentMessage ? (
+            <div
+              className={`inquiry-receipt ${
+                statusLabel === "Read"
+                  ? "is-read"
+                  : statusLabel === "Sending"
+                    ? "is-sending"
+                    : statusLabel === "Notified"
+                      ? "is-notified"
+                      : "is-delivered"
+              }`}
+            >
+              {statusLabel}
+            </div>
+          ) : null}
+        </article>
+      );
+    });
+  }
+
+  function renderGroupCard(group) {
+    const avatarCandidates = group.avatarCandidates?.length
+      ? group.avatarCandidates
+      : buildAvatarCandidates(group, group.latestInquiry);
+    const latestInquiry = group.latestInquiry;
+
+    return (
+      <article className="inquiry-card inquiry-panel" key={group.id}>
+        <header className="inquiry-card-head inquiry-panel-head">
+          <div className="inquiry-copy">
+            <div className="inquiry-heading-row">
+              <InquiryAvatar
+                alt=""
+                candidates={avatarCandidates}
+                fallbackText={initialsFromName(group.customer)}
+              />
+
+              <div className="inquiry-copy-text">
+                <p className="inquiry-name">{group.customer}</p>
+                <p className="inquiry-question inquiry-group-subtitle">
+                  {group.inquiries.length} thread{group.inquiries.length === 1 ? "" : "s"} ready
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="inquiry-chip-stack">
+            <span className="status-chip inquiry-chip">{group.inquiries.length} chats</span>
+            <span className="status-chip is-muted inquiry-chip">
+              {latestInquiry?.currentAgent || "Unassigned"}
+            </span>
           </div>
         </header>
 
-        <form className="inquiry-toolbar" onSubmit={handleSearch}>
-          <label className="sr-only" htmlFor="inquiry-search-input">
-            Search inquiries
-          </label>
-
-          <button className="inquiry-search-button" type="submit" aria-label="Search inquiries">
-            <svg aria-hidden="true" viewBox="0 0 24 24">
-              <path d="M10.5 4a6.5 6.5 0 1 1 4.1 11.55l4.07 4.07-1.41 1.41-4.07-4.07A6.5 6.5 0 0 1 10.5 4Zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z" />
-            </svg>
-          </button>
-
-          <label className="all-search-field inquiry-search-field">
-            <span className="sr-only">Search inquiries</span>
-            <input
-              id="inquiry-search-input"
-              className="field-input inquiry-search-input"
-              placeholder="Search inquiries"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-            />
-          </label>
-
-          <label className="sr-only" htmlFor="inquiry-filter-select">
-            Search filter
-          </label>
-          <select
-            id="inquiry-filter-select"
-            className="field-input inquiry-filter-select"
-            value={filterMode}
-            onChange={(event) => setFilterMode(event.target.value)}
-          >
-            <option value="all">All fields</option>
-            <option value="name">Name</option>
-            <option value="phone">Phone</option>
-            <option value="id">ID</option>
-            <option value="keyword">Keyword</option>
-            <option value="date">Date</option>
-          </select>
-        </form>
-
-        {error ? <p className="inquiry-error">{error}</p> : null}
-
-        <div className="inquiry-list inquiry-grid">
-          {visibleGroups.map((group) => {
-            const isOpen = resolvedExpandedId === group.id;
-            const avatar = resolveAvatar(group.latestInquiry ?? group);
-            const latestInquiry = group.latestInquiry;
-
-            return (
-              <article className={`inquiry-card inquiry-panel ${isOpen ? "is-open" : ""}`} key={group.id}>
-                <button className="inquiry-summary-button" onClick={() => toggleGroup(group.id)} type="button">
-                  <div className="inquiry-card-head inquiry-panel-head">
-                    <div className="inquiry-copy">
-                      <div className="inquiry-heading-row">
-                        {avatar ? (
-                          <img alt="" className="inquiry-avatar" src={avatar} />
-                        ) : (
-                          <div className="inquiry-avatar inquiry-avatar-fallback" aria-hidden="true">
-                            {String(group.customer ?? "U")
-                              .split(" ")
-                              .map((part) => part.charAt(0))
-                              .slice(0, 2)
-                              .join("")
-                              .toUpperCase()}
-                          </div>
-                        )}
-
-                        <div className="inquiry-copy-text">
-                          <p className="inquiry-name">{group.customer}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="inquiry-chip-stack">
-                      <span className="status-chip inquiry-chip">{group.inquiries.length} chats</span>
-                      <span className="status-chip is-muted inquiry-chip">
-                        {latestInquiry?.currentAgent || "Unassigned"}
-                      </span>
-                    </div>
-                  </div>
-                </button>
-
-                {isOpen ? (
-                  <div className="inquiry-body">
-                    <div className="inquiry-group-body-inner">
-                      {group.inquiries.map((item) => (
-                        <section className="inquiry-session" key={item.id}>
-                          <div className="inquiry-session-head">
-                            <div className="inquiry-session-meta">
-                              <strong>{formatInquiryLabel(item)}</strong>
-                              <span className="status-chip is-muted inquiry-chip">
-                                {item.status || "open"}
-                              </span>
-                            </div>
-                            <p className="inquiry-question">{makeSummary(item)}</p>
-                            {makeReason(item) ? (
-                              <span className="status-chip is-muted inquiry-chip inquiry-reason-chip">
-                                {makeReason(item)}
-                              </span>
-                            ) : null}
-                          </div>
-
-                          <div
-                            className="inquiry-thread inquiry-stream"
-                            aria-label={`Conversation for ${group.customer}`}
-                          >
-                            {item.thread?.length ? (
-                              item.thread.map((line, index) => (
-                                <div
-                                  className={`thread-line inquiry-line ${line.role === "agent" ? "is-agent" : "is-customer"}`}
-                                  key={`${item.id}-${index}`}
-                                >
-                                  <div className="thread-line-meta inquiry-line-meta">
-                                    <span>
-                                      {line.role === "agent"
-                                        ? item.currentAgent || "agent"
-                                        : group.customer || "customer"}
-                                    </span>
-                                    <time>{formatTime(line.createdAt)}</time>
-                                  </div>
-                                  <p>{line.message}</p>
-                                </div>
-                              ))
-                            ) : (
-                              <div className="inquiry-empty-thread">No messages yet.</div>
-                            )}
-                          </div>
-                        </section>
-                      ))}
-
-                      {latestInquiry ? (
-                        <form
-                          className="inquiry-reply-form"
-                          onSubmit={(event) => {
-                            event.preventDefault();
-                            void handleReply(latestInquiry);
-                          }}
-                        >
-                          <textarea
-                            className="inquiry-reply-input"
-                            placeholder="Reply"
-                            rows={3}
-                            value={drafts[latestInquiry.id] ?? ""}
-                            onChange={(event) => updateDraft(latestInquiry.id, event.target.value)}
-                          />
-
-                          <button
-                            className="inquiry-reply-button"
-                            type="submit"
-                            disabled={savingId === latestInquiry.id}
-                          >
-                            {savingId === latestInquiry.id ? "saving..." : "send reply"}
-                          </button>
-                        </form>
-                      ) : null}
-                    </div>
-                  </div>
-                ) : null}
-              </article>
-            );
-          })}
+        <div className="inquiry-thread-list">
+          {group.inquiries.map((item) => (
+            <ThreadPreviewButton key={item.id} group={group} item={item} onOpen={openThread} />
+          ))}
         </div>
+      </article>
+    );
+  }
 
-        {!visibleGroups.length ? (
-          <div className="inquiry-empty-thread inquiry-empty-search">
-            {isSearchActive ? "No matches." : "No inquiries have been found"}
-          </div>
+  function ThreadPreviewButton({ group, item, onOpen }) {
+    const readState = getThreadReadState(item);
+    const statusLabel = getThreadStatusLabel(item);
+
+    return (
+      <button
+        className={`inquiry-thread-preview ${readState.hasUnreadCustomerMessage ? "is-unread" : "is-read"}`}
+        onClick={() => onOpen(group.id, item.id)}
+        type="button"
+      >
+        <div className="inquiry-thread-preview-head">
+          <strong>{getThreadTitle(item)}</strong>
+          {readState.hasUnreadCustomerMessage ? <span className="inquiry-unread-dot" aria-hidden="true" /> : null}
+        </div>
+        <div className="inquiry-thread-preview-meta">
+          <span>{getThreadLabel(item)}</span>
+          <span className={`status-chip inquiry-chip ${statusLabel === "Read" ? "is-read" : statusLabel === "Sending" ? "is-sending" : statusLabel === "Notified" ? "is-notified" : "is-delivered"}`}>
+            {statusLabel}
+          </span>
+        </div>
+        <p className="inquiry-thread-preview-snippet">{getThreadPreview(item)}</p>
+        {makeReason(item) ? (
+          <span className="status-chip is-muted inquiry-chip inquiry-reason-chip">
+            {makeReason(item)}
+          </span>
         ) : null}
+      </button>
+    );
+  }
+
+  function renderDetailView(group, thread) {
+    const avatarCandidates = detailCandidates.length ? detailCandidates : buildAvatarCandidates(group, thread);
+    const threadMessages = thread?.thread ?? [];
+    const draft = thread ? drafts[thread.id] ?? "" : "";
+    const statusLabel = getThreadStatusLabel(thread, { isSending: savingId === thread?.id });
+
+    return (
+      <div className="inquiry-detail-view">
+        <header className="inquiry-detail-topbar">
+          <button className="inquiry-back-button" onClick={backToList} type="button">
+            back
+          </button>
+          <div className="inquiry-detail-topcopy">
+            <p className="inquiry-detail-eyebrow">thread detail</p>
+            <h2>{group.customer}</h2>
+            <p>{getThreadLabel(thread)}</p>
+          </div>
+        </header>
+
+        <section className="inquiry-detail-card inquiry-panel">
+          <div className="inquiry-detail-header">
+            <div className="inquiry-heading-row">
+              <InquiryAvatar
+                alt=""
+                candidates={avatarCandidates}
+                fallbackText={initialsFromName(group.customer)}
+              />
+
+              <div className="inquiry-copy-text">
+                <p className="inquiry-name">{group.customer}</p>
+                <p className="inquiry-question">{makeSummary(thread)}</p>
+              </div>
+            </div>
+
+            <div className="inquiry-chip-stack">
+              <span className="status-chip inquiry-chip">{threadMessages.length} messages</span>
+              <span className="status-chip is-muted inquiry-chip">
+                {thread?.currentAgent || "Unassigned"}
+              </span>
+              <span className={`status-chip inquiry-chip ${statusLabel === "Read" ? "is-read" : statusLabel === "Sending" ? "is-sending" : statusLabel === "Notified" ? "is-notified" : "is-delivered"}`}>
+                {statusLabel}
+              </span>
+            </div>
+          </div>
+
+          <div className="inquiry-detail-thread" aria-label={`Conversation for ${group.customer}`}>
+            {renderThreadMessages(threadMessages, group, thread)}
+          </div>
+
+          <form
+            className="inquiry-reply-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void handleReply(thread);
+            }}
+          >
+            <textarea
+              className="inquiry-reply-input"
+              placeholder="Reply"
+              rows={4}
+              value={draft}
+              onChange={(event) => updateDraft(thread.id, event.target.value)}
+            />
+
+            <button className="inquiry-reply-button" type="submit" disabled={savingId === thread.id}>
+              {savingId === thread.id ? "saving..." : "send reply"}
+            </button>
+          </form>
+        </section>
+      </div>
+    );
+  }
+
+  return (
+    <main className="page-root detail-page inquiry-page">
+      <section className="screen-shell inquiry-shell">
+        {error ? <p className="inquiry-error">{error}</p> : null}
+        {selectedThread && selectedGroup ? (
+          renderDetailView(selectedGroup, selectedThread)
+        ) : (
+          <>
+            <header className="new-topbar inquiry-topbar">
+              <div className="screen-heading new-heading inquiry-heading">
+                <h1 className="screen-title">Live queue</h1>
+              </div>
+            </header>
+
+            <form className="inquiry-toolbar" onSubmit={handleSearch}>
+              <label className="sr-only" htmlFor="inquiry-search-input">
+                Search inquiries
+              </label>
+
+              <button className="inquiry-search-button" type="submit" aria-label="Search inquiries">
+                <svg aria-hidden="true" viewBox="0 0 24 24">
+                  <path d="M10.5 4a6.5 6.5 0 1 1 4.1 11.55l4.07 4.07-1.41 1.41-4.07-4.07A6.5 6.5 0 0 1 10.5 4Zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z" />
+                </svg>
+              </button>
+
+              <label className="all-search-field inquiry-search-field">
+                <span className="sr-only">Search inquiries</span>
+                <input
+                  id="inquiry-search-input"
+                  className="field-input inquiry-search-input"
+                  placeholder="Search inquiries"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                />
+              </label>
+
+              <label className="sr-only" htmlFor="inquiry-filter-select">
+                Search filter
+              </label>
+              <select
+                id="inquiry-filter-select"
+                className="field-input inquiry-filter-select"
+                value={filterMode}
+                onChange={(event) => setFilterMode(event.target.value)}
+              >
+                <option value="all">All fields</option>
+                <option value="name">Name</option>
+                <option value="phone">Phone</option>
+                <option value="id">ID</option>
+                <option value="keyword">Keyword</option>
+                <option value="date">Date</option>
+              </select>
+            </form>
+
+            <div className="inquiry-list inquiry-grid">
+              {visibleGroups.map((group) => renderGroupCard(group))}
+            </div>
+
+            {!visibleGroups.length ? (
+              <div className="inquiry-empty-thread inquiry-empty-search">
+                {isSearchActive ? "No matches." : "No inquiries have been found"}
+              </div>
+            ) : null}
+          </>
+        )}
       </section>
     </main>
   );
