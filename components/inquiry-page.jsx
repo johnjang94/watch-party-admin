@@ -9,6 +9,25 @@ function normalize(value) {
   return String(value ?? "").trim();
 }
 
+function readAdminSession() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const raw = window.localStorage.getItem("watch-party-admin-session");
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function formatAdminDisplayName(session) {
+  const firstName = normalize(session?.firstName);
+  const lastName = normalize(session?.lastName);
+  return [firstName, lastName].filter(Boolean).join(" ").trim() || "Admin";
+}
+
 function normalizeAvatarSource(raw) {
   if (!raw) {
     return null;
@@ -374,6 +393,15 @@ function getThreadMessageName(role, group, item) {
   return getThreadCustomerName(group, item);
 }
 
+function getThreadReceiptLabel(item) {
+  const name = normalize(item?.currentAgent || item?.assignedTo);
+  if (!name || name.toLowerCase() === "unassigned") {
+    return "Unassigned";
+  }
+
+  return `Received by ${name}`;
+}
+
 function getThreadStatusLabel(item, { isSending = false } = {}) {
   if (isSending) {
     return "Sending";
@@ -434,6 +462,7 @@ export function InquiryPage({ inquiries }) {
   const [selectedGroupId, setSelectedGroupId] = useState("");
   const [selectedThreadId, setSelectedThreadId] = useState("");
   const [drafts, setDrafts] = useState({});
+  const [adminDisplayName] = useState(() => formatAdminDisplayName(readAdminSession()));
   const [adminKey, setAdminKey] = useState(() => {
     if (typeof window === "undefined") {
       return "";
@@ -525,7 +554,7 @@ export function InquiryPage({ inquiries }) {
         },
         body: JSON.stringify({
           message,
-          agentName: "Admin",
+          agentName: adminDisplayName,
         }),
       });
 
@@ -666,9 +695,7 @@ export function InquiryPage({ inquiries }) {
 
           <div className="inquiry-chip-stack">
             <span className="status-chip inquiry-chip">{group.inquiries.length} chats</span>
-            <span className="status-chip is-muted inquiry-chip">
-              {latestInquiry?.currentAgent || "Unassigned"}
-            </span>
+            <span className="status-chip is-muted inquiry-chip">{getThreadReceiptLabel(latestInquiry)}</span>
           </div>
         </header>
 
@@ -747,9 +774,7 @@ export function InquiryPage({ inquiries }) {
 
             <div className="inquiry-chip-stack">
               <span className="status-chip inquiry-chip">{threadMessages.length} messages</span>
-              <span className="status-chip is-muted inquiry-chip">
-                {thread?.currentAgent || "Unassigned"}
-              </span>
+              <span className="status-chip is-muted inquiry-chip">{getThreadReceiptLabel(thread)}</span>
               <span className={`status-chip inquiry-chip ${statusLabel === "Read" ? "is-read" : statusLabel === "Sending" ? "is-sending" : statusLabel === "Notified" ? "is-notified" : "is-delivered"}`}>
                 {statusLabel}
               </span>
