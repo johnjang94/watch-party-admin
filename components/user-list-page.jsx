@@ -557,7 +557,7 @@ function NewListView({ title, users, isLoading = false }) {
 
         {hasUsers ? (
           <div className="new-layout">
-            <section className="new-list-card" aria-label="New guest list">
+            <section className="new-list-card" aria-label="Recent guest list">
               <div className="new-list">
                 {users.map((user) => {
                   const isActive = selectedId === user.id;
@@ -627,7 +627,7 @@ function AllListView({ title, users, isLoading = false }) {
 
         {hasResults ? (
           <div className="new-layout">
-            <section className="new-list-card" aria-label="All guest list">
+            <section className="new-list-card" aria-label="Registered guest list">
               <div className="new-list">
                 {visibleUsers.map((user) => {
                   return (

@@ -35,8 +35,7 @@ export function MobileNav() {
 
   const isDashboard =
     pathname === "/dashboard" ||
-    pathname === "/new" ||
-    pathname === "/all" ||
+    pathname === "/registered" ||
     pathname === "/inquiry";
   const isProfile = pathname === "/profile";
   const isScan = pathname === "/scan";
