@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { getStoredAdminSessionId } from "../lib/admin-api";
 
 const apiBaseUrl =
   process.env.NEXT_PUBLIC_CONTROL_URL ?? "https://fifa-control.onrender.com";
@@ -474,6 +475,7 @@ export function InquiryPage({ inquiries, isLoading = false }) {
   const [submittedQuery, setSubmittedQuery] = useState("");
   const [filterMode, setFilterMode] = useState("all");
   const adminSessionId = useMemo(() => readAdminSessionId(), []);
+  const streamSessionId = useMemo(() => getStoredAdminSessionId(), []);
 
   const inquiryGroups = useMemo(() => buildInquiryGroups(items), [items]);
   const visibleGroups = useMemo(() => {
@@ -502,6 +504,54 @@ export function InquiryPage({ inquiries, isLoading = false }) {
   }, [inquiries]);
 
   useEffect(() => {
+    if (isLoading || !streamSessionId) {
+      return undefined;
+    }
+
+    let closed = false;
+    const source = new EventSource(
+      `${apiBaseUrl}/api/admin/inquiries/stream?sessionId=${encodeURIComponent(streamSessionId)}`,
+    );
+
+    source.onmessage = (event) => {
+      if (closed) {
+        return;
+      }
+
+      try {
+        const data = JSON.parse(event.data);
+        if (data?.ok === false) {
+          if (String(data.error ?? "").toLowerCase().includes("unauthorized")) {
+            setError("Admin session required.");
+            source.close();
+          }
+          return;
+        }
+
+        if (Array.isArray(data?.inquiries)) {
+          setItems(data.inquiries);
+          setError("");
+        }
+      } catch {
+        // Ignore malformed stream events.
+      }
+    };
+
+    source.onerror = () => {
+      if (closed) {
+        return;
+      }
+
+      setError((current) => current || "Live updates disconnected.");
+    };
+
+    return () => {
+      closed = true;
+      source.close();
+    };
+  }, [isLoading, streamSessionId]);
+
+  useEffect(() => {
     if (selectedThreadId && !items.some((item) => item.id === selectedThreadId)) {
       setSelectedThreadId("");
       setSelectedGroupId("");
@@ -514,6 +564,10 @@ export function InquiryPage({ inquiries, isLoading = false }) {
   }
 
   function openThread(groupId, threadId) {
+    if (!normalize(groupId) || !normalize(threadId)) {
+      return;
+    }
+
     const group = inquiryGroups.find((entry) => entry.id === groupId);
     const thread = group?.inquiries.find((entry) => entry.id === threadId);
     if (!group || !thread) {
@@ -540,16 +594,21 @@ export function InquiryPage({ inquiries, isLoading = false }) {
   }
 
   async function handleReply(item) {
-    const message = String(drafts[item.id] ?? "").trim();
+    const inquiryId = normalize(item?.id);
+    if (!inquiryId) {
+      return;
+    }
+
+    const message = String(drafts[inquiryId] ?? "").trim();
     if (!message || savingId) {
       return;
     }
 
-    setSavingId(item.id);
+    setSavingId(inquiryId);
     setError("");
 
     try {
-      const response = await fetch(`${apiBaseUrl}/api/admin/inquiries/${item.id}`, {
+      const response = await fetch(`${apiBaseUrl}/api/admin/inquiries/${inquiryId}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -569,9 +628,9 @@ export function InquiryPage({ inquiries, isLoading = false }) {
 
       if (data.inquiry) {
         setItems((current) =>
-          current.map((entry) => (entry.id === item.id ? data.inquiry : entry)),
+          current.map((entry) => (entry.id === inquiryId ? data.inquiry : entry)),
         );
-        updateDraft(item.id, "");
+        updateDraft(inquiryId, "");
         setSelectedGroupId(getInquiryGroupKey(data.inquiry));
         setSelectedThreadId(data.inquiry.id);
       }
@@ -583,12 +642,13 @@ export function InquiryPage({ inquiries, isLoading = false }) {
   }
 
   async function acknowledgeItem(item) {
-    if (!item?.id || item.humanAcknowledgedAt) {
+    const inquiryId = normalize(item?.id);
+    if (!inquiryId || item.humanAcknowledgedAt) {
       return;
     }
 
     try {
-      const response = await fetch(`${apiBaseUrl}/api/admin/inquiries/${item.id}`, {
+      const response = await fetch(`${apiBaseUrl}/api/admin/inquiries/${inquiryId}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -604,7 +664,7 @@ export function InquiryPage({ inquiries, isLoading = false }) {
 
       if (data.inquiry) {
         setItems((current) =>
-          current.map((entry) => (entry.id === item.id ? data.inquiry : entry)),
+          current.map((entry) => (entry.id === inquiryId ? data.inquiry : entry)),
         );
       }
     } catch {
