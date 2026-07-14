@@ -238,6 +238,13 @@ function getInquiryActionId(item) {
   return normalize(item?.id ?? item?.inviteId ?? item?.inviteToken ?? item?.ticketCode ?? "");
 }
 
+function getInquiryActionIdFromGroup(group, item) {
+  return (
+    getInquiryActionId(item) ||
+    normalize(group?.inviteId ?? group?.id ?? "")
+  );
+}
+
 const ONLINE_PRESENCE_WINDOW_MS = 45 * 1000;
 
 function parseTime(value) {
@@ -652,9 +659,9 @@ export function InquiryPage({ inquiries, isLoading = false }) {
     }
 
     setSelectedGroupId(group.id);
-    setSelectedThreadId(getInquiryActionId(thread));
+    setSelectedThreadId(getInquiryActionIdFromGroup(group, thread));
     if (!thread.humanAcknowledgedAt) {
-      void acknowledgeItem(thread);
+      void acknowledgeItem(thread, group);
     }
   }
 
@@ -670,8 +677,8 @@ export function InquiryPage({ inquiries, isLoading = false }) {
     }));
   }
 
-  async function handleReply(item) {
-    const inquiryId = getInquiryActionId(item);
+  async function handleReply(item, group) {
+    const inquiryId = getInquiryActionIdFromGroup(group, item);
     if (!inquiryId) {
       return;
     }
@@ -720,8 +727,8 @@ export function InquiryPage({ inquiries, isLoading = false }) {
     }
   }
 
-  async function acknowledgeItem(item) {
-    const inquiryId = getInquiryActionId(item);
+  async function acknowledgeItem(item, group) {
+    const inquiryId = getInquiryActionIdFromGroup(group, item);
     if (!inquiryId || item.humanAcknowledgedAt) {
       return;
     }
@@ -758,13 +765,15 @@ export function InquiryPage({ inquiries, isLoading = false }) {
       return <div className="inquiry-empty-thread">No messages yet.</div>;
     }
 
+    const activeThreadId = getInquiryActionIdFromGroup(group, item);
+
     return thread.map((line, index) => {
       const isAgent = getThreadRole(line) === "agent";
       const messageName = getThreadMessageName(line.role, group, item);
       const candidateSet = isAgent ? [] : buildAvatarCandidates(group, item);
       const isLatestAgentMessage = isAgent && getThreadLastTimestamp(thread, "agent") === parseTimestamp(line.createdAt);
       const statusLabel = isLatestAgentMessage
-        ? getThreadStatusLabel(item, { isSending: savingId === item.id })
+        ? getThreadStatusLabel(item, { isSending: savingId === activeThreadId })
         : "";
 
       return (
@@ -889,8 +898,9 @@ export function InquiryPage({ inquiries, isLoading = false }) {
   function renderDetailView(group, thread) {
     const avatarCandidates = detailCandidates.length ? detailCandidates : buildAvatarCandidates(group, thread);
     const threadMessages = thread?.thread ?? [];
-    const draft = thread ? drafts[thread.id] ?? "" : "";
-    const statusLabel = getThreadStatusLabel(thread, { isSending: savingId === thread?.id });
+    const threadId = getInquiryActionIdFromGroup(group, thread);
+    const draft = thread ? drafts[threadId] ?? "" : "";
+    const statusLabel = getThreadStatusLabel(thread, { isSending: savingId === threadId });
     const isOnline = isCustomerOnline(thread);
 
     return (
@@ -941,7 +951,7 @@ export function InquiryPage({ inquiries, isLoading = false }) {
             className="inquiry-reply-form"
             onSubmit={(event) => {
               event.preventDefault();
-              void handleReply(thread);
+              void handleReply(thread, group);
             }}
           >
             <textarea
@@ -949,11 +959,11 @@ export function InquiryPage({ inquiries, isLoading = false }) {
               placeholder="Reply"
               rows={4}
               value={draft}
-              onChange={(event) => updateDraft(thread.id, event.target.value)}
+              onChange={(event) => updateDraft(threadId, event.target.value)}
             />
 
-            <button className="inquiry-reply-button" type="submit" disabled={savingId === thread.id}>
-              {savingId === thread.id ? "saving..." : "send reply"}
+            <button className="inquiry-reply-button" type="submit" disabled={savingId === threadId}>
+              {savingId === threadId ? "saving..." : "send reply"}
             </button>
           </form>
         </section>
