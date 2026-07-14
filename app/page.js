@@ -125,71 +125,73 @@ export default function HomePage() {
             </div>
 
             <div className="login-stage">
-              <div className="login-mark" aria-hidden="true">
-                <div className="login-mark-ring">
-                  <div className="login-mark-core" />
+              <div className="login-shell">
+                <div className="login-mark" aria-hidden="true">
+                  <div className="login-mark-ring">
+                    <div className="login-mark-core" />
+                  </div>
                 </div>
-              </div>
 
-              <div className={`auth-switch is-open ${isCodeStep ? "is-code-step" : ""}`}>
-                <form className="auth-state auth-state-form login-panel" onSubmit={isCodeStep ? handleVerifyCode : handleSendCode}>
-                  <label className="login-field">
-                    <span className="sr-only">Phone number</span>
-                    <input
-                      autoComplete="tel"
-                      inputMode="tel"
-                      onChange={(event) => setPhoneNumber(event.target.value)}
-                      placeholder="Phone number"
-                      type="tel"
-                      value={phoneNumber}
-                    />
-                  </label>
-
-                  {isCodeStep ? (
+                <div className={`auth-switch is-open ${isCodeStep ? "is-code-step" : ""}`}>
+                  <form className="auth-state auth-state-form login-panel" onSubmit={isCodeStep ? handleVerifyCode : handleSendCode}>
                     <label className="login-field">
-                      <span className="sr-only">Verification code</span>
+                      <span className="sr-only">Phone number</span>
                       <input
-                        autoComplete="one-time-code"
-                        inputMode="numeric"
-                        onChange={(event) => setCode(event.target.value)}
-                        placeholder="6-digit code"
-                        type="text"
-                        value={code}
+                        autoComplete="tel"
+                        inputMode="tel"
+                        onChange={(event) => setPhoneNumber(event.target.value)}
+                        placeholder="Phone number"
+                        type="tel"
+                        value={phoneNumber}
                       />
                     </label>
-                  ) : null}
 
-                  <div className="login-status-stack" aria-live="polite">
-                    {statusMessage ? (
-                      <p className="login-banner" role="status">
-                        {statusMessage}
-                      </p>
-                    ) : null}
-
-                    {error ? (
-                      <p className="login-banner is-error" role="alert">
-                        {error}
-                      </p>
-                    ) : null}
-                  </div>
-
-                  <div className="login-actions">
                     {isCodeStep ? (
-                      <button
-                        className="login-button is-secondary"
-                        disabled={isSubmitting}
-                        type="button"
-                        onClick={handleBackToPhone}
-                      >
-                        change number
-                      </button>
+                      <label className="login-field">
+                        <span className="sr-only">Verification code</span>
+                        <input
+                          autoComplete="one-time-code"
+                          inputMode="numeric"
+                          onChange={(event) => setCode(event.target.value)}
+                          placeholder="6-digit code"
+                          type="text"
+                          value={code}
+                        />
+                      </label>
                     ) : null}
 
-                    <button className="login-submit" disabled={isSubmitting} type="submit">
-                      {isSubmitting ? (isCodeStep ? "verifying..." : "sending...") : isCodeStep ? "verify" : "send"}
-                    </button>
-                  </div>
-                </form>
+                    <div className="login-status-stack" aria-live="polite">
+                      {statusMessage ? (
+                        <p className="login-banner" role="status">
+                          {statusMessage}
+                        </p>
+                      ) : null}
+
+                      {error ? (
+                        <p className="login-banner is-error" role="alert">
+                          {error}
+                        </p>
+                      ) : null}
+                    </div>
+
+                    <div className="login-actions">
+                      {isCodeStep ? (
+                        <button
+                          className="login-button is-secondary"
+                          disabled={isSubmitting}
+                          type="button"
+                          onClick={handleBackToPhone}
+                        >
+                          change number
+                        </button>
+                      ) : null}
+
+                      <button className="login-submit" disabled={isSubmitting} type="submit">
+                        {isSubmitting ? (isCodeStep ? "verifying..." : "sending...") : isCodeStep ? "verify" : "send"}
+                      </button>
+                    </div>
+                  </form>
+                </div>
               </div>
             </div>
           </div>
