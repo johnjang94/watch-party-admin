@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getStoredAdminSessionId } from "../lib/admin-api";
 
 const apiBaseUrl =
@@ -232,6 +232,32 @@ function getInquiryGroupKey(item) {
     String(item?.inviteId ?? item?.inviteToken ?? item?.phoneNumber ?? item?.customer ?? item?.id ?? "").trim() ||
     item?.id
   );
+}
+
+function getInquiryActionId(item) {
+  return normalize(item?.id ?? item?.inviteId ?? item?.inviteToken ?? item?.ticketCode ?? "");
+}
+
+const ONLINE_PRESENCE_WINDOW_MS = 45 * 1000;
+
+function parseTime(value) {
+  const time = new Date(value).getTime();
+  return Number.isFinite(time) ? time : 0;
+}
+
+function isCustomerOnline(item) {
+  if (normalize(item?.supportChatState).toLowerCase() !== "active") {
+    return false;
+  }
+
+  const activeAt = parseTime(item?.supportChatActiveAt);
+  if (!activeAt) {
+    return false;
+  }
+
+  const inactiveAt = parseTime(item?.supportChatInactiveAt);
+  const now = Date.now();
+  return now - activeAt <= ONLINE_PRESENCE_WINDOW_MS && activeAt >= inactiveAt;
 }
 
 function buildAvatarCandidates(...sources) {
@@ -476,6 +502,9 @@ export function InquiryPage({ inquiries, isLoading = false }) {
   const [filterMode, setFilterMode] = useState("all");
   const adminSessionId = useMemo(() => readAdminSessionId(), []);
   const streamSessionId = useMemo(() => getStoredAdminSessionId(), []);
+  const streamReconnectTimerRef = useRef(null);
+  const streamReconnectAttemptRef = useRef(0);
+  const streamClosedRef = useRef(false);
 
   const inquiryGroups = useMemo(() => buildInquiryGroups(items), [items]);
   const visibleGroups = useMemo(() => {
@@ -492,8 +521,8 @@ export function InquiryPage({ inquiries, isLoading = false }) {
     visibleGroups.find((group) => group.id === selectedGroupId) ??
     null;
   const selectedThread =
-    selectedGroup?.inquiries.find((item) => item.id === selectedThreadId) ??
-    items.find((item) => item.id === selectedThreadId) ??
+    selectedGroup?.inquiries.find((item) => getInquiryActionId(item) === selectedThreadId) ??
+    items.find((item) => getInquiryActionId(item) === selectedThreadId) ??
     null;
   const detailCandidates = selectedGroup
     ? buildAvatarCandidates(selectedGroup, selectedThread)
@@ -508,51 +537,98 @@ export function InquiryPage({ inquiries, isLoading = false }) {
       return undefined;
     }
 
-    let closed = false;
-    const source = new EventSource(
-      `${apiBaseUrl}/api/admin/inquiries/stream?sessionId=${encodeURIComponent(streamSessionId)}`,
-    );
+    const streamUrl = `${apiBaseUrl}/api/admin/inquiries/stream?sessionId=${encodeURIComponent(streamSessionId)}`;
 
-    source.onmessage = (event) => {
-      if (closed) {
+    function clearReconnectTimer() {
+      if (streamReconnectTimerRef.current) {
+        window.clearTimeout(streamReconnectTimerRef.current);
+        streamReconnectTimerRef.current = null;
+      }
+    }
+
+    function connect() {
+      if (streamClosedRef.current) {
         return;
       }
 
-      try {
-        const data = JSON.parse(event.data);
-        if (data?.ok === false) {
-          if (String(data.error ?? "").toLowerCase().includes("unauthorized")) {
-            setError("Admin session required.");
-            source.close();
-          }
+      const source = new EventSource(streamUrl);
+      let terminal = false;
+
+      source.onmessage = (event) => {
+        if (terminal || streamClosedRef.current) {
           return;
         }
 
-        if (Array.isArray(data?.inquiries)) {
-          setItems(data.inquiries);
-          setError("");
+        try {
+          const data = JSON.parse(event.data);
+          if (data?.ok === false) {
+            if (String(data.error ?? "").toLowerCase().includes("unauthorized")) {
+              terminal = true;
+              streamClosedRef.current = true;
+              clearReconnectTimer();
+              source.close();
+              setError("Admin session required.");
+            }
+            return;
+          }
+
+          if (Array.isArray(data?.inquiries)) {
+            setItems(data.inquiries);
+            setError("");
+          }
+        } catch {
+          // Ignore malformed stream events.
         }
-      } catch {
-        // Ignore malformed stream events.
-      }
-    };
+      };
 
-    source.onerror = () => {
-      if (closed) {
-        return;
-      }
+      source.onopen = () => {
+        if (terminal || streamClosedRef.current) {
+          return;
+        }
 
-      setError((current) => current || "Live updates disconnected.");
-    };
+        streamReconnectAttemptRef.current = 0;
+        clearReconnectTimer();
+        setError("");
+      };
+
+      source.onerror = () => {
+        if (terminal || streamClosedRef.current) {
+          return;
+        }
+
+        terminal = true;
+        source.close();
+
+        const attempt = streamReconnectAttemptRef.current + 1;
+        streamReconnectAttemptRef.current = attempt;
+        const delay = Math.min(30000, 1000 * 2 ** Math.min(attempt - 1, 5));
+
+        clearReconnectTimer();
+        streamReconnectTimerRef.current = window.setTimeout(() => {
+          streamReconnectTimerRef.current = null;
+          connect();
+        }, delay);
+
+        if (attempt >= 4) {
+          setError("Live updates disconnected.");
+        } else {
+          setError((current) => current || "Reconnecting live updates...");
+        }
+      };
+    }
+
+    streamClosedRef.current = false;
+    clearReconnectTimer();
+    connect();
 
     return () => {
-      closed = true;
-      source.close();
+      streamClosedRef.current = true;
+      clearReconnectTimer();
     };
   }, [isLoading, streamSessionId]);
 
   useEffect(() => {
-    if (selectedThreadId && !items.some((item) => item.id === selectedThreadId)) {
+    if (selectedThreadId && !items.some((item) => getInquiryActionId(item) === selectedThreadId)) {
       setSelectedThreadId("");
       setSelectedGroupId("");
     }
@@ -564,18 +640,19 @@ export function InquiryPage({ inquiries, isLoading = false }) {
   }
 
   function openThread(groupId, threadId) {
-    if (!normalize(groupId) || !normalize(threadId)) {
+    const resolvedThreadId = normalize(threadId);
+    if (!normalize(groupId) || !resolvedThreadId) {
       return;
     }
 
     const group = inquiryGroups.find((entry) => entry.id === groupId);
-    const thread = group?.inquiries.find((entry) => entry.id === threadId);
+    const thread = group?.inquiries.find((entry) => getInquiryActionId(entry) === resolvedThreadId);
     if (!group || !thread) {
       return;
     }
 
     setSelectedGroupId(group.id);
-    setSelectedThreadId(thread.id);
+    setSelectedThreadId(getInquiryActionId(thread));
     if (!thread.humanAcknowledgedAt) {
       void acknowledgeItem(thread);
     }
@@ -594,7 +671,7 @@ export function InquiryPage({ inquiries, isLoading = false }) {
   }
 
   async function handleReply(item) {
-    const inquiryId = normalize(item?.id);
+    const inquiryId = getInquiryActionId(item);
     if (!inquiryId) {
       return;
     }
@@ -628,11 +705,13 @@ export function InquiryPage({ inquiries, isLoading = false }) {
 
       if (data.inquiry) {
         setItems((current) =>
-          current.map((entry) => (entry.id === inquiryId ? data.inquiry : entry)),
+          current.map((entry) =>
+            getInquiryActionId(entry) === inquiryId ? data.inquiry : entry,
+          ),
         );
         updateDraft(inquiryId, "");
         setSelectedGroupId(getInquiryGroupKey(data.inquiry));
-        setSelectedThreadId(data.inquiry.id);
+        setSelectedThreadId(getInquiryActionId(data.inquiry));
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to save reply.");
@@ -642,7 +721,7 @@ export function InquiryPage({ inquiries, isLoading = false }) {
   }
 
   async function acknowledgeItem(item) {
-    const inquiryId = normalize(item?.id);
+    const inquiryId = getInquiryActionId(item);
     if (!inquiryId || item.humanAcknowledgedAt) {
       return;
     }
@@ -664,7 +743,9 @@ export function InquiryPage({ inquiries, isLoading = false }) {
 
       if (data.inquiry) {
         setItems((current) =>
-          current.map((entry) => (entry.id === inquiryId ? data.inquiry : entry)),
+          current.map((entry) =>
+            getInquiryActionId(entry) === inquiryId ? data.inquiry : entry,
+          ),
         );
       }
     } catch {
@@ -735,6 +816,7 @@ export function InquiryPage({ inquiries, isLoading = false }) {
       ? group.avatarCandidates
       : buildAvatarCandidates(group, group.latestInquiry);
     const latestInquiry = group.latestInquiry;
+    const isOnline = group.inquiries.some(isCustomerOnline);
 
     return (
       <article className="inquiry-card inquiry-panel" key={group.id}>
@@ -748,7 +830,10 @@ export function InquiryPage({ inquiries, isLoading = false }) {
               />
 
               <div className="inquiry-copy-text">
-                <p className="inquiry-name">{group.customer}</p>
+                <div className="inquiry-name-row">
+                  <p className="inquiry-name">{group.customer}</p>
+                  {isOnline ? <span className="inquiry-presence-dot" aria-hidden="true" /> : null}
+                </div>
                 <p className="inquiry-question inquiry-group-subtitle">
                   {group.inquiries.length} thread{group.inquiries.length === 1 ? "" : "s"} ready
                 </p>
@@ -778,7 +863,7 @@ export function InquiryPage({ inquiries, isLoading = false }) {
     return (
       <button
         className={`inquiry-thread-preview ${readState.hasUnreadCustomerMessage ? "is-unread" : "is-read"}`}
-        onClick={() => onOpen(group.id, item.id)}
+        onClick={() => onOpen(group.id, getInquiryActionId(item))}
         type="button"
       >
         <div className="inquiry-thread-preview-head">
@@ -806,6 +891,7 @@ export function InquiryPage({ inquiries, isLoading = false }) {
     const threadMessages = thread?.thread ?? [];
     const draft = thread ? drafts[thread.id] ?? "" : "";
     const statusLabel = getThreadStatusLabel(thread, { isSending: savingId === thread?.id });
+    const isOnline = isCustomerOnline(thread);
 
     return (
       <div className="inquiry-detail-view">
@@ -830,7 +916,10 @@ export function InquiryPage({ inquiries, isLoading = false }) {
               />
 
               <div className="inquiry-copy-text">
-                <p className="inquiry-name">{group.customer}</p>
+                <div className="inquiry-name-row">
+                  <p className="inquiry-name">{group.customer}</p>
+                  {isOnline ? <span className="inquiry-presence-dot" aria-hidden="true" /> : null}
+                </div>
                 <p className="inquiry-question">{makeSummary(thread)}</p>
               </div>
             </div>
