@@ -8,13 +8,14 @@ import { requestAdminOtp, verifyAdminOtp } from "../lib/admin-api";
 
 export default function HomePage() {
   const router = useRouter();
-  const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [code, setCode] = useState("");
   const [step, setStep] = useState("phone");
   const [statusMessage, setStatusMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  const isCodeStep = step === "code";
 
   async function handleSendCode(event) {
     event.preventDefault();
@@ -73,6 +74,13 @@ export default function HomePage() {
     }
   }
 
+  function handleBackToPhone() {
+    setStep("phone");
+    setCode("");
+    setStatusMessage("");
+    setError("");
+  }
+
   return (
     <main className="page-root home-page">
       <section className="hero-stage">
@@ -90,51 +98,32 @@ export default function HomePage() {
 
         <div className="hero-content">
           <div className="cta-band">
-            <div className={`auth-switch ${isLoginOpen ? "is-open" : ""}`}>
-              <div className="auth-state auth-state-login" aria-hidden={isLoginOpen}>
-                <button className="login-button" onClick={() => setIsLoginOpen(true)} type="button">
-                  admin login
-                </button>
+            <div className="login-mark" aria-hidden="true">
+              <div className="login-mark-ring">
+                <div className="login-mark-core" />
               </div>
+              <div className="login-mark-bars">
+                <span />
+                <span />
+                <span />
+              </div>
+            </div>
 
-              {step === "phone" ? (
-                <form className="auth-state auth-state-form login-panel" onSubmit={handleSendCode}>
-                  <label className="login-field">
-                    <span className="sr-only">Phone number</span>
-                    <input
-                      autoComplete="tel"
-                      inputMode="tel"
-                      onChange={(event) => setPhoneNumber(event.target.value)}
-                      placeholder="Phone number"
-                      type="tel"
-                      value={phoneNumber}
-                    />
-                  </label>
+            <div className={`auth-switch is-open ${isCodeStep ? "is-code-step" : ""}`}>
+              <form className="auth-state auth-state-form login-panel" onSubmit={isCodeStep ? handleVerifyCode : handleSendCode}>
+                <label className="login-field">
+                  <span className="sr-only">Phone number</span>
+                  <input
+                    autoComplete="tel"
+                    inputMode="tel"
+                    onChange={(event) => setPhoneNumber(event.target.value)}
+                    placeholder="Phone number"
+                    type="tel"
+                    value={phoneNumber}
+                  />
+                </label>
 
-                  {error ? (
-                    <p className="error-text login-error" role="alert">
-                      {error}
-                    </p>
-                  ) : null}
-
-                  <button className="login-submit" disabled={isSubmitting} type="submit">
-                    {isSubmitting ? "sending..." : "send code"}
-                  </button>
-                </form>
-              ) : (
-                <form className="auth-state auth-state-form login-panel" onSubmit={handleVerifyCode}>
-                  <label className="login-field">
-                    <span className="sr-only">Phone number</span>
-                    <input
-                      autoComplete="tel"
-                      inputMode="tel"
-                      onChange={(event) => setPhoneNumber(event.target.value)}
-                      placeholder="Phone number"
-                      type="tel"
-                      value={phoneNumber}
-                    />
-                  </label>
-
+                {isCodeStep ? (
                   <label className="login-field">
                     <span className="sr-only">Verification code</span>
                     <input
@@ -146,35 +135,39 @@ export default function HomePage() {
                       value={code}
                     />
                   </label>
+                ) : null}
 
+                <div className="login-status-stack" aria-live="polite">
                   {statusMessage ? (
-                    <p className="error-text login-error" role="status">
+                    <p className="login-banner" role="status">
                       {statusMessage}
                     </p>
                   ) : null}
 
                   {error ? (
-                    <p className="error-text login-error" role="alert">
+                    <p className="login-banner is-error" role="alert">
                       {error}
                     </p>
                   ) : null}
+                </div>
 
-                  <div className="name-row">
+                <div className="login-actions">
+                  {isCodeStep ? (
                     <button
-                      className="login-submit"
+                      className="login-button is-secondary"
                       disabled={isSubmitting}
                       type="button"
-                      onClick={() => setStep("phone")}
+                      onClick={handleBackToPhone}
                     >
-                      back
+                      change number
                     </button>
+                  ) : null}
 
-                    <button className="login-submit" disabled={isSubmitting} type="submit">
-                      {isSubmitting ? "verifying..." : "verify"}
-                    </button>
-                  </div>
-                </form>
-              )}
+                  <button className="login-submit" disabled={isSubmitting} type="submit">
+                    {isSubmitting ? (isCodeStep ? "verifying..." : "sending...") : isCodeStep ? "verify code" : "send code"}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>

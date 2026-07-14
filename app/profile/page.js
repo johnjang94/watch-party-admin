@@ -214,7 +214,7 @@ export default function ProfilePage() {
 
             <button
               className="profile-save-button profile-check-button"
-      disabled={capacitySaving || !adminSessionId}
+              disabled={capacitySaving || !adminSessionId}
               type="button"
               onClick={() => void handleSaveCapacity()}
               aria-label="Save total number of guests"
