@@ -102,11 +102,6 @@ export default function HomePage() {
               <div className="login-mark-ring">
                 <div className="login-mark-core" />
               </div>
-              <div className="login-mark-bars">
-                <span />
-                <span />
-                <span />
-              </div>
             </div>
 
             <div className={`auth-switch is-open ${isCodeStep ? "is-code-step" : ""}`}>
@@ -164,7 +159,7 @@ export default function HomePage() {
                   ) : null}
 
                   <button className="login-submit" disabled={isSubmitting} type="submit">
-                    {isSubmitting ? (isCodeStep ? "verifying..." : "sending...") : isCodeStep ? "verify code" : "send code"}
+                    {isSubmitting ? (isCodeStep ? "verifying..." : "sending...") : isCodeStep ? "verify" : "send"}
                   </button>
                 </div>
               </form>

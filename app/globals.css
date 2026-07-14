@@ -5043,10 +5043,14 @@ body {
 }
 
 .home-page .hero-stage {
+  display: flex;
+  flex-direction: column;
   min-height: 100dvh;
 }
 
 .home-page .hero-content {
+  display: flex;
+  align-items: flex-end;
   width: min(100%, 1180px);
   margin: 0 auto;
   padding: max(18px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right))
@@ -5060,8 +5064,8 @@ body {
   padding: 18px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background:
-    linear-gradient(180deg, rgba(5, 10, 11, 0.28), rgba(5, 10, 11, 0.84)),
-    rgba(8, 14, 15, 0.76);
+    linear-gradient(180deg, rgba(7, 9, 16, 0.26), rgba(7, 9, 16, 0.88)),
+    rgba(10, 10, 16, 0.82);
   backdrop-filter: blur(24px) saturate(118%);
   box-shadow:
     0 28px 80px rgba(0, 0, 0, 0.38),
@@ -5081,13 +5085,13 @@ body {
   display: grid;
   place-items: center;
   gap: 12px;
-  padding: 16px;
-  min-height: 128px;
-  border-radius: 28px;
+  padding: 18px 16px;
+  min-height: 132px;
+  border-radius: 32px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background:
-    radial-gradient(circle at 50% 30%, rgba(214, 181, 92, 0.14), transparent 28%),
-    linear-gradient(180deg, rgba(8, 13, 14, 0.94), rgba(5, 10, 11, 0.82));
+    radial-gradient(circle at 50% 30%, rgba(151, 107, 255, 0.18), transparent 28%),
+    linear-gradient(180deg, rgba(9, 10, 17, 0.96), rgba(6, 7, 12, 0.82));
   box-shadow:
     0 24px 54px rgba(0, 0, 0, 0.24),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
@@ -5098,7 +5102,7 @@ body {
   width: 38px;
   height: 1px;
   border-radius: 999px;
-  background: linear-gradient(90deg, transparent, rgba(214, 181, 92, 0.86), transparent);
+  background: linear-gradient(90deg, transparent, rgba(175, 152, 255, 0.9), transparent);
 }
 
 .login-mark-ring {
@@ -5107,12 +5111,12 @@ body {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(214, 181, 92, 0.28);
+  border: 1px solid rgba(163, 144, 255, 0.28);
   background:
-    radial-gradient(circle at 50% 50%, rgba(214, 181, 92, 0.12), transparent 48%),
+    radial-gradient(circle at 50% 50%, rgba(163, 144, 255, 0.12), transparent 48%),
     rgba(255, 255, 255, 0.02);
   box-shadow:
-    0 0 0 10px rgba(214, 181, 92, 0.04),
+    0 0 0 10px rgba(163, 144, 255, 0.04),
     0 12px 26px rgba(0, 0, 0, 0.28);
 }
 
@@ -5121,23 +5125,10 @@ body {
   height: 30px;
   border-radius: 10px;
   background:
-    linear-gradient(180deg, rgba(214, 181, 92, 0.96), rgba(124, 94, 28, 0.94));
+    linear-gradient(180deg, rgba(178, 160, 255, 0.96), rgba(88, 66, 164, 0.96));
   box-shadow:
-    0 10px 18px rgba(214, 181, 92, 0.18),
+    0 10px 18px rgba(156, 132, 255, 0.18),
     inset 0 1px 0 rgba(255, 255, 255, 0.16);
-}
-
-.login-mark-bars {
-  width: 100%;
-  display: grid;
-  gap: 8px;
-}
-
-.login-mark-bars span {
-  display: block;
-  height: 1px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), transparent);
 }
 
 .auth-switch {
@@ -5167,11 +5158,11 @@ body {
   position: relative;
   gap: 16px;
   padding: 20px;
-  border-radius: 28px;
-  border: 1px solid rgba(214, 181, 92, 0.12);
+  border-radius: 30px;
+  border: 1px solid rgba(176, 157, 255, 0.14);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.01)),
-    rgba(6, 10, 11, 0.92);
+    rgba(8, 9, 15, 0.94);
   box-shadow:
     0 24px 60px rgba(0, 0, 0, 0.28),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
@@ -5191,13 +5182,13 @@ body {
   border-radius: 18px;
   padding: 0 16px;
   font-size: 1rem;
-  background: rgba(255, 255, 255, 0.045);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.09);
 }
 
 .login-field input:focus {
-  border-color: rgba(214, 181, 92, 0.48);
-  box-shadow: 0 0 0 4px rgba(214, 181, 92, 0.12);
+  border-color: rgba(176, 157, 255, 0.5);
+  box-shadow: 0 0 0 4px rgba(176, 157, 255, 0.12);
 }
 
 .login-status-stack {
@@ -5209,8 +5200,8 @@ body {
   margin: 0;
   padding: 12px 14px;
   border-radius: 16px;
-  background: rgba(214, 181, 92, 0.08);
-  border: 1px solid rgba(214, 181, 92, 0.18);
+  background: rgba(176, 157, 255, 0.08);
+  border: 1px solid rgba(176, 157, 255, 0.16);
   color: rgba(245, 241, 232, 0.88);
   line-height: 1.5;
 }
@@ -5244,12 +5235,12 @@ body {
 
 .login-submit {
   background:
-    linear-gradient(180deg, rgba(214, 181, 92, 0.98), rgba(124, 94, 28, 0.98)),
-    linear-gradient(180deg, #d6b55c 0%, #7c5e1c 100%);
-  color: #16120a;
+    linear-gradient(180deg, rgba(176, 157, 255, 0.96), rgba(87, 67, 162, 0.98)),
+    linear-gradient(180deg, #b09dff 0%, #5743a2 100%);
+  color: #f8f6ff;
   border: 0;
   box-shadow:
-    0 20px 38px rgba(214, 181, 92, 0.2),
+    0 20px 38px rgba(135, 115, 255, 0.18),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
@@ -5282,18 +5273,39 @@ body {
 }
 
 @media (max-width: 640px) {
+  .home-page .hero-stage {
+    justify-content: flex-end;
+  }
+
   .home-page .hero-content {
+    flex: 1;
     padding: max(12px, env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom));
   }
 
   .cta-band {
     gap: 16px;
     padding: 14px;
-    border-radius: 28px;
+    border-radius: 30px;
+    width: 100%;
+    margin-top: auto;
   }
 
   .login-actions {
     grid-template-columns: 1fr;
+  }
+
+  .login-mark {
+    min-height: 112px;
+  }
+
+  .login-mark-ring {
+    width: 68px;
+    height: 68px;
+  }
+
+  .login-mark-core {
+    width: 26px;
+    height: 26px;
   }
 
   .login-button.is-secondary {
