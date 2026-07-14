@@ -5213,6 +5213,15 @@ img {
   opacity: 0.62;
 }
 
+.profile-capacity-status {
+  margin: 0;
+  color: rgba(234, 243, 238, 0.58);
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.66rem;
+}
+
 .profile-logout-button {
   border-color: rgba(255, 140, 140, 0.18);
   background: linear-gradient(180deg, rgba(186, 72, 72, 0.9), rgba(112, 30, 30, 0.98));
@@ -5225,6 +5234,17 @@ img {
   border: 1px solid rgba(255, 123, 123, 0.25);
   padding: 12px 14px;
   border-radius: 16px;
+}
+
+.profile-success {
+  margin: 0;
+  color: rgba(194, 255, 213, 0.94);
+  background: rgba(68, 170, 107, 0.14);
+  border: 1px solid rgba(110, 214, 145, 0.22);
+  padding: 12px 14px;
+  border-radius: 16px;
+  text-align: center;
+  letter-spacing: 0.02em;
 }
 
 .profile-inline-error {

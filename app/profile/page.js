@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
+  fetchInviteOverview,
   fetchInviteSettings,
   getStoredAdminSessionId,
   updateInviteBannerPhoto,
@@ -51,6 +52,8 @@ export default function ProfilePage() {
   const [capacity, setCapacity] = useState("");
   const [capacitySaving, setCapacitySaving] = useState(false);
   const [capacityError, setCapacityError] = useState("");
+  const [capacitySavedAt, setCapacitySavedAt] = useState("");
+  const [inviteCount, setInviteCount] = useState(0);
   const [profilePhotoUrl, setProfilePhotoUrl] = useState("");
   const [bannerPhotoUrl, setBannerPhotoUrl] = useState("");
   const [profileSaving, setProfileSaving] = useState(false);
@@ -67,12 +70,21 @@ export default function ProfilePage() {
 
     async function loadSettings() {
       try {
-        const data = await fetchInviteSettings();
-        if (cancelled || !data.ok) {
+        const [settingsData, overviewData] = await Promise.all([
+          fetchInviteSettings(),
+          fetchInviteOverview(),
+        ]);
+
+        if (cancelled || !settingsData.ok || !overviewData.ok) {
           return;
         }
 
-        setCapacity(data.capacity === null || data.capacity === undefined ? "" : String(data.capacity));
+        setCapacity(
+          settingsData.capacity === null || settingsData.capacity === undefined
+            ? ""
+            : String(settingsData.capacity),
+        );
+        setInviteCount(Number(overviewData.inviteCount ?? 0));
 
         const storedSession = readStoredSession();
         const localPhoto = typeof window === "undefined"
@@ -80,9 +92,9 @@ export default function ProfilePage() {
           : window.localStorage.getItem("watch-party-admin-photo") || "";
 
         setProfilePhotoUrl(
-          toPhotoUrl(data.profilePhoto, localPhoto || storedSession?.photoUrl || ""),
+          toPhotoUrl(settingsData.profilePhoto, localPhoto || storedSession?.photoUrl || ""),
         );
-        setBannerPhotoUrl(toPhotoUrl(data.bannerPhoto, "/image.jpg"));
+        setBannerPhotoUrl(toPhotoUrl(settingsData.bannerPhoto, "/image.jpg"));
       } catch (error) {
         if (!cancelled) {
           setCapacityError(error instanceof Error ? error.message : "Unable to load settings.");
@@ -105,6 +117,20 @@ export default function ProfilePage() {
       previewUrlsRef.current.clear();
     };
   }, []);
+
+  useEffect(() => {
+    if (!capacitySavedAt) {
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => {
+      setCapacitySavedAt("");
+    }, 2000);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [capacitySavedAt]);
 
   function revokePreviewUrl(url) {
     if (url && url.startsWith("blob:") && previewUrlsRef.current.has(url)) {
@@ -210,6 +236,7 @@ export default function ProfilePage() {
       }
 
       setCapacity(data.capacity === null || data.capacity === undefined ? "" : String(data.capacity));
+      setCapacitySavedAt(data.updatedAt ?? new Date().toISOString());
     } catch (error) {
       setCapacityError(error instanceof Error ? error.message : "Unable to update capacity.");
     } finally {
@@ -244,6 +271,8 @@ export default function ProfilePage() {
   }
 
   const capacityValue = capacity === "" ? "—" : capacity;
+  const capacityCurrent = capacity === "" ? "∞" : `${inviteCount}`;
+  const capacityLimit = capacity === "" ? "∞" : capacityValue;
   const initials = displayName
     .split(" ")
     .filter(Boolean)
@@ -256,6 +285,10 @@ export default function ProfilePage() {
       ? `linear-gradient(180deg, rgba(3, 9, 6, 0.14), rgba(3, 9, 6, 0.64)), url("${bannerPhotoUrl}")`
       : "linear-gradient(135deg, rgba(12, 26, 18, 0.94), rgba(21, 58, 40, 0.88))",
   };
+  const capacityLabel = capacityValue === "—" ? "No limit" : `${capacityValue} guests`;
+  const capacityButtonLabel = capacitySaving ? "Saving..." : capacitySavedAt ? "Saved" : "Save";
+  const capacityStatusLabel =
+    capacity === "" ? `${inviteCount} registered` : `${capacityCurrent} / ${capacityLimit}`;
 
   return (
     <main className="page-root profile-page">
@@ -368,7 +401,7 @@ export default function ProfilePage() {
 
           <div className="profile-capacity-foot">
             <span className="profile-capacity-chip">
-              {capacitySaving ? "Saving" : `${capacityValue} guests`}
+              {capacitySaving ? "Saving" : capacityLabel}
             </span>
             <button
               className="profile-save-button profile-capacity-save"
@@ -376,9 +409,19 @@ export default function ProfilePage() {
               onClick={() => void handleSaveCapacity()}
               disabled={capacitySaving || !adminSessionId}
             >
-              Save
+              {capacityButtonLabel}
             </button>
           </div>
+
+          <p className="profile-capacity-status" aria-live="polite">
+            {capacityStatusLabel}
+          </p>
+
+          {capacitySavedAt ? (
+            <p className="profile-success" role="status" aria-live="polite">
+              Saved to registration flow.
+            </p>
+          ) : null}
 
           {capacityError ? <p className="profile-error">{capacityError}</p> : null}
         </section>
