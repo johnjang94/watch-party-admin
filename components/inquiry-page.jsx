@@ -438,8 +438,15 @@ function getThreadLabel(item) {
   return formatThreadDate(item?.createdAt || item?.updatedAt || item?.humanRequestedAt);
 }
 
-function getThreadMessageName(role, group, item) {
-  if (getThreadRole({ role }) === "agent") {
+function getThreadMessageName(entry, group, item) {
+  const role = getThreadRole(entry);
+  const senderName = normalize(entry?.senderName);
+
+  if (senderName) {
+    return senderName;
+  }
+
+  if (role === "agent") {
     return item?.currentAgent || item?.assignedTo || "Admin";
   }
 
@@ -862,7 +869,7 @@ export function InquiryPage({ inquiries, isLoading = false }) {
 
     return thread.map((line, index) => {
       const isAgent = getThreadRole(line) === "agent";
-      const messageName = getThreadMessageName(line.role, group, item);
+      const messageName = getThreadMessageName(line, group, item);
       const candidateSet = isAgent ? [] : buildAvatarCandidates(group, item);
       const isLatestAgentMessage = isAgent && getThreadLastTimestamp(thread, "agent") === parseTimestamp(line.createdAt);
       const statusLabel = isLatestAgentMessage
