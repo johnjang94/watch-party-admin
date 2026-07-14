@@ -22,6 +22,11 @@ function readAdminSession() {
   }
 }
 
+function readAdminSessionId() {
+  const session = readAdminSession();
+  return normalize(session?.id);
+}
+
 function formatAdminDisplayName(session) {
   const firstName = normalize(session?.firstName);
   const lastName = normalize(session?.lastName);
@@ -463,18 +468,12 @@ export function InquiryPage({ inquiries }) {
   const [selectedThreadId, setSelectedThreadId] = useState("");
   const [drafts, setDrafts] = useState({});
   const [adminDisplayName] = useState(() => formatAdminDisplayName(readAdminSession()));
-  const [adminKey, setAdminKey] = useState(() => {
-    if (typeof window === "undefined") {
-      return "";
-    }
-
-    return window.localStorage.getItem("fifa-admin-access-key") || "";
-  });
   const [savingId, setSavingId] = useState("");
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
   const [filterMode, setFilterMode] = useState("all");
+  const adminSessionId = useMemo(() => readAdminSessionId(), []);
 
   const inquiryGroups = useMemo(() => buildInquiryGroups(items), [items]);
   const visibleGroups = useMemo(() => {
@@ -550,7 +549,7 @@ export function InquiryPage({ inquiries }) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(adminKey ? { "x-admin-key": adminKey } : {}),
+          ...(adminSessionId ? { "x-admin-session-id": adminSessionId } : {}),
         },
         body: JSON.stringify({
           message,
@@ -589,7 +588,7 @@ export function InquiryPage({ inquiries }) {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          ...(adminKey ? { "x-admin-key": adminKey } : {}),
+          ...(adminSessionId ? { "x-admin-session-id": adminSessionId } : {}),
         },
       });
 

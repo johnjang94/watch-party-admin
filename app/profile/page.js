@@ -3,7 +3,11 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { fetchInviteSettings, updateInviteCapacity } from "../../lib/admin-api";
+import {
+  fetchInviteSettings,
+  getStoredAdminSessionId,
+  updateInviteCapacity,
+} from "../../lib/admin-api";
 
 function readImageFile(file) {
   return new Promise((resolve, reject) => {
@@ -22,13 +26,7 @@ function formatDisplayName(session) {
 
 export default function ProfilePage() {
   const router = useRouter();
-  const [adminKey] = useState(() => {
-    if (typeof window === "undefined") {
-      return "";
-    }
-
-    return window.localStorage.getItem("fifa-admin-access-key") || "";
-  });
+  const [adminSessionId] = useState(() => getStoredAdminSessionId());
   const [displayName] = useState(() => {
     if (typeof window === "undefined") {
       return "John Jang";
@@ -75,7 +73,7 @@ export default function ProfilePage() {
   });
 
   useEffect(() => {
-    if (!adminKey) {
+    if (!adminSessionId) {
       return undefined;
     }
 
@@ -83,7 +81,7 @@ export default function ProfilePage() {
 
     async function loadSettings() {
       try {
-        const data = await fetchInviteSettings(adminKey);
+        const data = await fetchInviteSettings();
         if (cancelled || !data.ok) {
           return;
         }
@@ -103,7 +101,7 @@ export default function ProfilePage() {
     return () => {
       cancelled = true;
     };
-  }, [adminKey]);
+  }, [adminSessionId]);
 
   async function handlePhotoChange(event) {
     const file = event.target.files?.[0];
@@ -131,7 +129,7 @@ export default function ProfilePage() {
         throw new Error("Capacity must be a positive whole number.");
       }
 
-      const data = await updateInviteCapacity(adminKey, payload);
+      const data = await updateInviteCapacity(payload);
 
       if (!data.ok) {
         throw new Error(data.error ?? "Unable to update capacity.");
@@ -216,7 +214,7 @@ export default function ProfilePage() {
 
             <button
               className="profile-save-button profile-check-button"
-              disabled={capacitySaving || !adminKey}
+      disabled={capacitySaving || !adminSessionId}
               type="button"
               onClick={() => void handleSaveCapacity()}
               aria-label="Save total number of guests"

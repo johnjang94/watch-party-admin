@@ -2,20 +2,21 @@
 
 import { useEffect, useState } from "react";
 import { useCallback } from "react";
+import { getStoredAdminSessionId } from "../lib/admin-api";
 
 const controlBaseUrl =
   process.env.NEXT_PUBLIC_CONTROL_URL ?? "https://fifa-control.onrender.com";
 
 export function AdminDashboard() {
-  const [initialStoredKey] = useState(() => {
+  const [initialStoredSessionId] = useState(() => {
     if (typeof window === "undefined") {
       return "";
     }
 
-    return window.localStorage.getItem("fifa-admin-access-key") || "";
+    return getStoredAdminSessionId();
   });
-  const [adminKey, setAdminKey] = useState(() => initialStoredKey);
-  const [savedKey, setSavedKey] = useState(() => initialStoredKey);
+  const [adminSessionId] = useState(() => initialStoredSessionId);
+  const [savedSessionId, setSavedSessionId] = useState(() => initialStoredSessionId);
   const [invites, setInvites] = useState([]);
   const [activities, setActivities] = useState([]);
   const [activitySessionFilter, setActivitySessionFilter] = useState("all");
@@ -28,7 +29,7 @@ export function AdminDashboard() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const loadDashboard = useCallback(async (key) => {
+  const loadDashboard = useCallback(async (sessionId) => {
     setLoading(true);
     setError("");
 
@@ -36,13 +37,13 @@ export function AdminDashboard() {
       const [invitesResponse, settingsResponse, activityResponse] =
         await Promise.all([
         fetch(`${controlBaseUrl}/api/invites`, {
-          headers: { "x-admin-key": key },
+          headers: sessionId ? { "x-admin-session-id": sessionId } : {},
         }),
         fetch(`${controlBaseUrl}/api/settings`, {
-          headers: { "x-admin-key": key },
+          headers: sessionId ? { "x-admin-session-id": sessionId } : {},
         }),
         fetch(`${controlBaseUrl}/api/activity`, {
-          headers: { "x-admin-key": key },
+          headers: sessionId ? { "x-admin-session-id": sessionId } : {},
         }),
       ]);
 
@@ -73,8 +74,7 @@ export function AdminDashboard() {
       );
       setCapacityUpdatedAt(settingsData.updatedAt ?? "");
       setSettingsLoaded(true);
-      setSavedKey(key);
-      window.localStorage.setItem("fifa-admin-access-key", key);
+      setSavedSessionId(sessionId);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to load invites.");
     } finally {
@@ -83,15 +83,15 @@ export function AdminDashboard() {
   }, []);
 
   useEffect(() => {
-    if (initialStoredKey) {
+    if (initialStoredSessionId) {
       const timer = window.setTimeout(() => {
-        void loadDashboard(initialStoredKey);
+        void loadDashboard(initialStoredSessionId);
       }, 0);
 
       return () => window.clearTimeout(timer);
     }
     return undefined;
-  }, [initialStoredKey, loadDashboard]);
+  }, [initialStoredSessionId, loadDashboard]);
 
   async function saveCapacity() {
     setCapacitySaving(true);
@@ -102,7 +102,7 @@ export function AdminDashboard() {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          "x-admin-key": adminKey,
+          ...(adminSessionId ? { "x-admin-session-id": adminSessionId } : {}),
         },
         body: JSON.stringify({
           capacity: capacity === "" ? null : Number(capacity),
@@ -115,7 +115,7 @@ export function AdminDashboard() {
         throw new Error(data.error ?? "Unable to update capacity.");
       }
 
-      await loadDashboard(adminKey);
+      await loadDashboard(adminSessionId);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to update capacity.");
     } finally {
@@ -181,7 +181,7 @@ export function AdminDashboard() {
             </div>
             <div>
               <strong>Access</strong>
-              <span>{savedKey ? "connected" : "waiting"}</span>
+              <span>{savedSessionId ? "connected" : "waiting"}</span>
             </div>
           </div>
         </div>
@@ -189,17 +189,17 @@ export function AdminDashboard() {
         <div className="admin-sidebar">
           <div className="admin-key-card">
             <label className="admin-field">
-              <span className="sr-only">Admin access key</span>
+              <span className="sr-only">Admin session id</span>
               <input
-                onChange={(event) => setAdminKey(event.target.value)}
-                placeholder="Access key"
-                value={adminKey}
+                readOnly
+                placeholder="Session connected"
+                value={adminSessionId}
               />
             </label>
 
             <button
               className="submit-button"
-              onClick={() => void loadDashboard(adminKey)}
+              onClick={() => void loadDashboard(adminSessionId)}
               type="button"
             >
               {loading ? "Loading..." : "Load"}
