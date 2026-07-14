@@ -21,7 +21,7 @@ function readImageFile(file) {
 function formatDisplayName(session) {
   const firstName = typeof session?.firstName === "string" ? session.firstName.trim() : "";
   const lastName = typeof session?.lastName === "string" ? session.lastName.trim() : "";
-  return [firstName, lastName].filter(Boolean).join(" ") || "John Jang";
+  return [firstName, lastName].filter(Boolean).join(" ") || "Admin";
 }
 
 export default function ProfilePage() {
@@ -29,18 +29,18 @@ export default function ProfilePage() {
   const [adminSessionId] = useState(() => getStoredAdminSessionId());
   const [displayName] = useState(() => {
     if (typeof window === "undefined") {
-      return "John Jang";
+      return "Admin";
     }
 
     const sessionRaw = window.localStorage.getItem("watch-party-admin-session");
     if (!sessionRaw) {
-      return "John Jang";
+      return "Admin";
     }
 
     try {
       return formatDisplayName(JSON.parse(sessionRaw));
     } catch {
-      return "John Jang";
+      return "Admin";
     }
   });
   const [capacity, setCapacity] = useState("");
@@ -49,19 +49,19 @@ export default function ProfilePage() {
   const [photoError, setPhotoError] = useState("");
   const [phoneNumber, setPhoneNumber] = useState(() => {
     if (typeof window === "undefined") {
-      return "647-553-3499";
+      return "Unavailable";
     }
 
     const sessionRaw = window.localStorage.getItem("watch-party-admin-session");
     if (!sessionRaw) {
-      return "647-553-3499";
+      return "Unavailable";
     }
 
     try {
       const session = JSON.parse(sessionRaw);
-      return session?.phoneNumber || "647-553-3499";
+      return session?.phoneNumber || "Unavailable";
     } catch {
-      return "647-553-3499";
+      return "Unavailable";
     }
   });
   const [photo, setPhoto] = useState(() => {

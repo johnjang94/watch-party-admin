@@ -122,19 +122,26 @@ export function ScanPage() {
         return null;
       }
 
-      const user = await fetchAdminUserByToken(safeIdentifier);
-      if (!user) {
+      try {
+        const user = await fetchAdminUserByToken(safeIdentifier);
+        if (!user) {
+          return null;
+        }
+
+        setActiveGuest(user);
+        setManualError("");
+        setLookupMessage("");
+        setCheckInMessage("");
+        setCheckInError("");
+        setShowManualEntry(false);
+        await stopCamera();
+        return user;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unable to look up guest.";
+        setManualError(message);
+        setLookupMessage("");
         return null;
       }
-
-      setActiveGuest(user);
-      setManualError("");
-      setLookupMessage("");
-      setCheckInMessage("");
-      setCheckInError("");
-      setShowManualEntry(false);
-      await stopCamera();
-      return user;
     },
     [stopCamera],
   );
