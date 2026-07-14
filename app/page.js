@@ -1,9 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import heroImage from "../image.png";
 import { requestAdminOtp, verifyAdminOtp } from "../lib/admin-api";
 
 export default function HomePage() {
@@ -14,6 +12,7 @@ export default function HomePage() {
   const [statusMessage, setStatusMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [isOtpOpen, setIsOtpOpen] = useState(false);
 
   const isCodeStep = step === "code";
 
@@ -74,6 +73,18 @@ export default function HomePage() {
     }
   }
 
+  function openOtp() {
+    setIsOtpOpen(true);
+    setStep("phone");
+    setCode("");
+    setStatusMessage("");
+    setError("");
+  }
+
+  function closeOtp() {
+    setIsOtpOpen(false);
+  }
+
   function handleBackToPhone() {
     setStep("phone");
     setCode("");
@@ -82,121 +93,87 @@ export default function HomePage() {
   }
 
   return (
-    <main className="page-root home-page">
-      <section className="hero-stage">
-        <div className="page-background" aria-hidden="true">
-          <Image
-            alt=""
-            className="page-background-image"
-            fill
-            priority
-            sizes="100vw"
-            src={heroImage}
-          />
-          <div className="page-background-overlay" />
-          <div className="page-background-vignette" />
-          <div className="page-background-glow page-background-glow-one" />
-          <div className="page-background-glow page-background-glow-two" />
+    <main className="page-root home-login-page">
+      <div className="home-login-background" aria-hidden="true" />
+
+      <div className="home-login-scrim" aria-hidden="true" />
+
+      <button className="home-login-trigger" type="button" onClick={openOtp}>
+        ADMIN LOGIN
+      </button>
+
+      {isOtpOpen ? (
+        <div className="home-login-modal" role="presentation" onClick={closeOtp}>
+          <section
+            aria-label="Admin login"
+            className="home-login-sheet"
+            role="dialog"
+            aria-modal="true"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button className="home-login-close" type="button" onClick={closeOtp} aria-label="Close login">
+              ×
+            </button>
+
+            <form className="home-login-form" onSubmit={isCodeStep ? handleVerifyCode : handleSendCode}>
+              <div className="home-login-orb" aria-hidden="true">
+                <span />
+              </div>
+
+              <label className="sr-only" htmlFor="admin-phone">
+                Phone number
+              </label>
+              <input
+                id="admin-phone"
+                className="home-login-input"
+                autoComplete="tel"
+                inputMode="tel"
+                onChange={(event) => setPhoneNumber(event.target.value)}
+                placeholder="Phone number"
+                type="tel"
+                value={phoneNumber}
+                autoFocus={!isCodeStep}
+              />
+
+              {isCodeStep ? (
+                <>
+                  <label className="sr-only" htmlFor="admin-code">
+                    Verification code
+                  </label>
+                  <input
+                    id="admin-code"
+                    className="home-login-input"
+                    autoComplete="one-time-code"
+                    inputMode="numeric"
+                    onChange={(event) => setCode(event.target.value)}
+                    placeholder="OTP"
+                    type="text"
+                    value={code}
+                    autoFocus={isCodeStep}
+                  />
+                </>
+              ) : null}
+
+              <div className="home-login-status" aria-live="polite">
+                {statusMessage ? <p className="home-login-message">{statusMessage}</p> : null}
+                {error ? <p className="home-login-message is-error">{error}</p> : null}
+              </div>
+
+              <div className="home-login-actions">
+                {isCodeStep ? (
+                  <button className="home-login-button is-secondary" type="button" onClick={handleBackToPhone} disabled={isSubmitting}>
+                    Back
+                  </button>
+                ) : null}
+
+                <button className="home-login-button" type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? (isCodeStep ? "VERIFYING" : "SENDING") : isCodeStep ? "VERIFY OTP" : "SEND OTP"}
+                </button>
+              </div>
+            </form>
+          </section>
         </div>
-
-        <div className="hero-content">
-          <div className="device-shell">
-            <header className="device-topbar" aria-hidden="true">
-              <span className="device-time">9:55</span>
-              <div className="device-indicators">
-                <span className="signal">
-                  <span />
-                  <span />
-                  <span />
-                  <span />
-                </span>
-                <span className="wifi" />
-                <span className="battery">
-                  <span className="battery-level" />
-                  <span className="battery-label">99</span>
-                </span>
-              </div>
-            </header>
-
-            <div className="hero-poster" aria-hidden="true">
-              <div className="hero-poster-frame">
-                <div className="hero-poster-fade" />
-              </div>
-            </div>
-
-            <div className="login-stage">
-              <div className="login-shell">
-                <div className="login-mark" aria-hidden="true">
-                  <div className="login-mark-ring">
-                    <div className="login-mark-core" />
-                  </div>
-                </div>
-
-                <div className={`auth-switch is-open ${isCodeStep ? "is-code-step" : ""}`}>
-                  <form className="auth-state auth-state-form login-panel" onSubmit={isCodeStep ? handleVerifyCode : handleSendCode}>
-                    <label className="login-field">
-                      <span className="sr-only">Phone number</span>
-                      <input
-                        autoComplete="tel"
-                        inputMode="tel"
-                        onChange={(event) => setPhoneNumber(event.target.value)}
-                        placeholder="Phone number"
-                        type="tel"
-                        value={phoneNumber}
-                      />
-                    </label>
-
-                    {isCodeStep ? (
-                      <label className="login-field">
-                        <span className="sr-only">Verification code</span>
-                        <input
-                          autoComplete="one-time-code"
-                          inputMode="numeric"
-                          onChange={(event) => setCode(event.target.value)}
-                          placeholder="6-digit code"
-                          type="text"
-                          value={code}
-                        />
-                      </label>
-                    ) : null}
-
-                    <div className="login-status-stack" aria-live="polite">
-                      {statusMessage ? (
-                        <p className="login-banner" role="status">
-                          {statusMessage}
-                        </p>
-                      ) : null}
-
-                      {error ? (
-                        <p className="login-banner is-error" role="alert">
-                          {error}
-                        </p>
-                      ) : null}
-                    </div>
-
-                    <div className="login-actions">
-                      {isCodeStep ? (
-                        <button
-                          className="login-button is-secondary"
-                          disabled={isSubmitting}
-                          type="button"
-                          onClick={handleBackToPhone}
-                        >
-                          change number
-                        </button>
-                      ) : null}
-
-                      <button className="login-submit" disabled={isSubmitting} type="submit">
-                        {isSubmitting ? (isCodeStep ? "verifying..." : "sending...") : isCodeStep ? "verify" : "send"}
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      ) : null}
     </main>
   );
 }
