@@ -5,6 +5,8 @@ import { getStoredAdminSessionId } from "../lib/admin-api";
 
 const apiBaseUrl =
   process.env.NEXT_PUBLIC_CONTROL_URL ?? "https://fifa-control.onrender.com";
+const realtimeBaseUrl =
+  process.env.NEXT_PUBLIC_REALTIME_URL ?? "https://fifa-realtime.onrender.com";
 
 function normalize(value) {
   return String(value ?? "").trim();
@@ -250,6 +252,18 @@ const ONLINE_PRESENCE_WINDOW_MS = 45 * 1000;
 function parseTime(value) {
   const time = new Date(value).getTime();
   return Number.isFinite(time) ? time : 0;
+}
+
+function getRealtimeSocketUrl(roomId) {
+  const safeRoomId = normalize(roomId);
+  if (!safeRoomId) {
+    return "";
+  }
+
+  const url = new URL("/ws", realtimeBaseUrl);
+  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+  url.searchParams.set("room", safeRoomId);
+  return url.toString();
 }
 
 function isCustomerOnline(item) {
@@ -509,9 +523,11 @@ export function InquiryPage({ inquiries, isLoading = false }) {
   const [filterMode, setFilterMode] = useState("all");
   const adminSessionId = useMemo(() => readAdminSessionId(), []);
   const streamSessionId = useMemo(() => getStoredAdminSessionId(), []);
-  const streamReconnectTimerRef = useRef(null);
-  const streamReconnectAttemptRef = useRef(0);
-  const streamClosedRef = useRef(false);
+  const streamPollTimerRef = useRef(null);
+  const streamPollFailureCountRef = useRef(0);
+  const liveSocketRef = useRef(null);
+  const liveSocketReconnectTimerRef = useRef(null);
+  const liveSocketReconnectAttemptRef = useRef(0);
 
   const inquiryGroups = useMemo(() => buildInquiryGroups(items), [items]);
   const visibleGroups = useMemo(() => {
@@ -544,95 +560,170 @@ export function InquiryPage({ inquiries, isLoading = false }) {
       return undefined;
     }
 
-    const streamUrl = `${apiBaseUrl}/api/admin/inquiries/stream?sessionId=${encodeURIComponent(streamSessionId)}`;
+    let cancelled = false;
 
-    function clearReconnectTimer() {
-      if (streamReconnectTimerRef.current) {
-        window.clearTimeout(streamReconnectTimerRef.current);
-        streamReconnectTimerRef.current = null;
-      }
-    }
-
-    function connect() {
-      if (streamClosedRef.current) {
+    async function refreshInquiries() {
+      if (cancelled) {
         return;
       }
 
-      const source = new EventSource(streamUrl);
-      let terminal = false;
+      try {
+        const response = await fetch(`${apiBaseUrl}/api/admin/inquiries`, {
+          headers: streamSessionId ? { "x-admin-session-id": streamSessionId } : {},
+          cache: "no-store",
+        });
+        const data = await response.json();
 
-      source.onmessage = (event) => {
-        if (terminal || streamClosedRef.current) {
+        if (cancelled) {
+          return;
+        }
+
+        if (!response.ok || !data.ok) {
+          throw new Error(data.error ?? "Unable to load inquiries.");
+        }
+
+        streamPollFailureCountRef.current = 0;
+        setItems(data.inquiries ?? []);
+        setError("");
+      } catch {
+        if (cancelled) {
+          return;
+        }
+
+        const nextFailureCount = streamPollFailureCountRef.current + 1;
+        streamPollFailureCountRef.current = nextFailureCount;
+
+        if (nextFailureCount >= 3) {
+          setError("Live updates are temporarily unavailable. Retrying...");
+        } else {
+          setError((current) => current || "Reconnecting live updates...");
+        }
+      }
+    }
+
+    void refreshInquiries();
+    streamPollTimerRef.current = window.setInterval(() => {
+      void refreshInquiries();
+    }, 2500);
+
+    return () => {
+      cancelled = true;
+      if (streamPollTimerRef.current) {
+        window.clearInterval(streamPollTimerRef.current);
+        streamPollTimerRef.current = null;
+      }
+      streamPollFailureCountRef.current = 0;
+    };
+  }, [isLoading, streamSessionId]);
+
+  useEffect(() => {
+    if (!selectedThreadId || isLoading || !streamSessionId) {
+      return undefined;
+    }
+
+    const socketUrl = getRealtimeSocketUrl(selectedThreadId);
+    if (!socketUrl || typeof window.WebSocket !== "function") {
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    function clearReconnectTimer() {
+      if (liveSocketReconnectTimerRef.current) {
+        window.clearTimeout(liveSocketReconnectTimerRef.current);
+        liveSocketReconnectTimerRef.current = null;
+      }
+    }
+
+    function closeSocket() {
+      if (!liveSocketRef.current) {
+        return;
+      }
+
+      try {
+        liveSocketRef.current.close();
+      } catch {
+        // Ignore cleanup close failures.
+      }
+
+      liveSocketRef.current = null;
+    }
+
+    function connect() {
+      if (cancelled) {
+        return;
+      }
+
+      closeSocket();
+      const socket = new WebSocket(socketUrl);
+      liveSocketRef.current = socket;
+
+      socket.onopen = () => {
+        if (cancelled) {
+          return;
+        }
+
+        liveSocketReconnectAttemptRef.current = 0;
+        clearReconnectTimer();
+      };
+
+      socket.onmessage = (event) => {
+        if (cancelled) {
           return;
         }
 
         try {
           const data = JSON.parse(event.data);
-          if (data?.ok === false) {
-            if (String(data.error ?? "").toLowerCase().includes("unauthorized")) {
-              terminal = true;
-              streamClosedRef.current = true;
-              clearReconnectTimer();
-              source.close();
-              setError("Admin session required.");
-            }
-            return;
-          }
-
-          if (Array.isArray(data?.inquiries)) {
-            setItems(data.inquiries);
-            setError("");
+          if (data?.type === "inquiry.updated" && data?.room === selectedThreadId && data?.inquiry) {
+            setItems((current) =>
+              current.map((entry) =>
+                getInquiryActionId(entry) === data.inquiry.id ? data.inquiry : entry,
+              ),
+            );
           }
         } catch {
-          // Ignore malformed stream events.
+          // Ignore malformed websocket payloads.
         }
       };
 
-      source.onopen = () => {
-        if (terminal || streamClosedRef.current) {
+      socket.onerror = () => {
+        if (cancelled) {
           return;
         }
 
-        streamReconnectAttemptRef.current = 0;
-        clearReconnectTimer();
-        setError("");
+        try {
+          socket.close();
+        } catch {
+          // Ignore close failures.
+        }
       };
 
-      source.onerror = () => {
-        if (terminal || streamClosedRef.current) {
+      socket.onclose = () => {
+        if (cancelled) {
           return;
         }
 
-        terminal = true;
-        source.close();
-
-        const attempt = streamReconnectAttemptRef.current + 1;
-        streamReconnectAttemptRef.current = attempt;
-        const delay = Math.min(30000, 1000 * 2 ** Math.min(attempt - 1, 5));
+        const attempt = liveSocketReconnectAttemptRef.current + 1;
+        liveSocketReconnectAttemptRef.current = attempt;
+        const delay = Math.min(15000, 500 * 2 ** Math.min(attempt - 1, 5));
 
         clearReconnectTimer();
-        streamReconnectTimerRef.current = window.setTimeout(() => {
-          streamReconnectTimerRef.current = null;
+        liveSocketReconnectTimerRef.current = window.setTimeout(() => {
+          liveSocketReconnectTimerRef.current = null;
           connect();
         }, delay);
-
-        if (attempt >= 4) {
-          setError("Live updates disconnected.");
-        } else {
-          setError((current) => current || "Reconnecting live updates...");
-        }
       };
     }
 
-    streamClosedRef.current = false;
-    clearReconnectTimer();
     connect();
 
     return () => {
-      streamClosedRef.current = true;
+      cancelled = true;
       clearReconnectTimer();
+      closeSocket();
+      liveSocketReconnectAttemptRef.current = 0;
     };
-  }, [isLoading, streamSessionId]);
+  }, [isLoading, selectedThreadId, streamSessionId]);
 
   useEffect(() => {
     if (selectedThreadId && !items.some((item) => getInquiryActionId(item) === selectedThreadId)) {
