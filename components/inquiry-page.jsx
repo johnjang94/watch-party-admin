@@ -692,15 +692,17 @@ export function InquiryPage({ inquiries, isLoading = false }) {
     setError("");
 
     try {
-      const response = await fetch(`${apiBaseUrl}/api/admin/inquiries/${inquiryId}`, {
+      const response = await fetch(`${apiBaseUrl}/api/support/inquiries`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           ...(adminSessionId ? { "x-admin-session-id": adminSessionId } : {}),
         },
         body: JSON.stringify({
+          ticketId: inquiryId,
           message,
           agentName: adminDisplayName,
+          senderRole: "agent",
         }),
       });
 
