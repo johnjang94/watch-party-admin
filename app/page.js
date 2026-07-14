@@ -1,23 +1,28 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { requestAdminOtp, verifyAdminOtp } from "../lib/admin-api";
 
 export default function HomePage() {
   const router = useRouter();
   const [phoneNumber, setPhoneNumber] = useState("");
   const [code, setCode] = useState("");
-  const [step, setStep] = useState("phone");
+  const [phoneVisible, setPhoneVisible] = useState(false);
+  const [isOtpOpen, setIsOtpOpen] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [isOtpOpen, setIsOtpOpen] = useState(false);
+  const phoneInputRef = useRef(null);
 
-  const isCodeStep = step === "code";
-
-  async function handleSendCode(event) {
+  async function handlePrimaryAction(event) {
     event.preventDefault();
+
+    if (!phoneVisible) {
+      setPhoneVisible(true);
+      return;
+    }
+
     setIsSubmitting(true);
     setError("");
     setStatusMessage("");
@@ -35,8 +40,8 @@ export default function HomePage() {
         throw new Error(result?.error ?? "Unable to send verification code.");
       }
 
-      setStep("code");
       setStatusMessage(result.message ?? "Verification code sent.");
+      setIsOtpOpen(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Authentication failed.");
     } finally {
@@ -73,34 +78,42 @@ export default function HomePage() {
     }
   }
 
-  function openOtp() {
-    setIsOtpOpen(true);
-    setStep("phone");
-    setCode("");
-    setStatusMessage("");
-    setError("");
-  }
-
   function closeOtp() {
     setIsOtpOpen(false);
-  }
-
-  function handleBackToPhone() {
-    setStep("phone");
     setCode("");
     setStatusMessage("");
     setError("");
   }
+
+  useEffect(() => {
+    if (phoneVisible) {
+      phoneInputRef.current?.focus();
+    }
+  }, [phoneVisible]);
 
   return (
     <main className="page-root home-login-page">
       <div className="home-login-background" aria-hidden="true" />
-
       <div className="home-login-scrim" aria-hidden="true" />
 
-      <button className="home-login-trigger" type="button" onClick={openOtp}>
-        ADMIN LOGIN
-      </button>
+      <form className="home-login-dock" onSubmit={handlePrimaryAction}>
+        <div className={`home-login-phone-shell ${phoneVisible ? "is-visible" : ""}`}>
+          <input
+            ref={phoneInputRef}
+            className="home-login-phone-input"
+            autoComplete="tel"
+            inputMode="tel"
+            onChange={(event) => setPhoneNumber(event.target.value)}
+            placeholder="Phone number"
+            type="tel"
+            value={phoneNumber}
+          />
+        </div>
+
+        <button className="home-login-trigger" type="submit" disabled={isSubmitting}>
+          {phoneVisible ? "SEND OTP CODE" : "ADMIN LOGIN"}
+        </button>
+      </form>
 
       {isOtpOpen ? (
         <div className="home-login-modal" role="presentation" onClick={closeOtp}>
@@ -115,40 +128,21 @@ export default function HomePage() {
               ×
             </button>
 
-            <form className="home-login-form" onSubmit={isCodeStep ? handleVerifyCode : handleSendCode}>
-              <label className="sr-only" htmlFor="admin-phone">
-                Phone number
+            <form className="home-login-form" onSubmit={handleVerifyCode}>
+              <label className="sr-only" htmlFor="admin-code">
+                Verification code
               </label>
               <input
-                id="admin-phone"
+                id="admin-code"
                 className="home-login-input"
-                autoComplete="tel"
-                inputMode="tel"
-                onChange={(event) => setPhoneNumber(event.target.value)}
-                placeholder="Phone number"
-                type="tel"
-                value={phoneNumber}
-                autoFocus={!isCodeStep}
+                autoComplete="one-time-code"
+                inputMode="numeric"
+                onChange={(event) => setCode(event.target.value)}
+                placeholder="Enter 5-digit code"
+                type="text"
+                value={code}
+                autoFocus
               />
-
-              {isCodeStep ? (
-                <>
-                  <label className="sr-only" htmlFor="admin-code">
-                    Verification code
-                  </label>
-                  <input
-                    id="admin-code"
-                    className="home-login-input"
-                    autoComplete="one-time-code"
-                    inputMode="numeric"
-                    onChange={(event) => setCode(event.target.value)}
-                    placeholder="Enter 5-digit code"
-                    type="text"
-                    value={code}
-                    autoFocus={isCodeStep}
-                  />
-                </>
-              ) : null}
 
               <div className="home-login-status" aria-live="polite">
                 {statusMessage ? <p className="home-login-message">{statusMessage}</p> : null}
@@ -156,14 +150,8 @@ export default function HomePage() {
               </div>
 
               <div className="home-login-actions">
-                {isCodeStep ? (
-                  <button className="home-login-button is-secondary" type="button" onClick={handleBackToPhone} disabled={isSubmitting}>
-                    Back
-                  </button>
-                ) : null}
-
                 <button className="home-login-button" type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? (isCodeStep ? "VERIFYING" : "SENDING") : isCodeStep ? "VERIFY OTP" : "VERIFY THE CODE"}
+                  {isSubmitting ? "VERIFYING" : "Verify the code"}
                 </button>
               </div>
             </form>
