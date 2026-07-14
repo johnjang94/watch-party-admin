@@ -10,6 +10,7 @@ function isWaitlistedUser(user) {
 
 export default function WaitlistedPage() {
   const [users, setUsers] = useState(null);
+  const [refreshIndex, setRefreshIndex] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -26,7 +27,7 @@ export default function WaitlistedPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [refreshIndex]);
 
   const waitlistedUsers = useMemo(() => {
     return (users ?? []).filter(isWaitlistedUser);
@@ -43,6 +44,8 @@ export default function WaitlistedPage() {
       showCheckInBadge={false}
       noMatchesBody="Try another search."
       noMatchesTitle="No matches."
+      onPrimaryActionComplete={() => setRefreshIndex((current) => current + 1)}
+      primaryActionMode="accept"
       title="waitlisted"
       users={waitlistedUsers}
     />

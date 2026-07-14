@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { resendWelcomeSms } from "../lib/admin-api";
+import { acceptWaitlistedInvite, resendWelcomeSms } from "../lib/admin-api";
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_CONTROL_URL ?? "https://fifa-control.onrender.com";
 
@@ -297,7 +297,12 @@ function UserAvatar({ user, className, fallbackClassName }) {
   );
 }
 
-function NewDetailCard({ user, checkInBadge }) {
+function NewDetailCard({
+  user,
+  checkInBadge,
+  primaryActionMode = "resend",
+  onPrimaryActionComplete,
+}) {
   const avatarCandidates = useMemo(() => buildAvatarCandidates(user), [user]);
   const [isResending, setIsResending] = useState(false);
   const [sendNotice, setSendNotice] = useState(null);
@@ -321,6 +326,10 @@ function NewDetailCard({ user, checkInBadge }) {
           : "";
 
   async function handleResendWelcome() {
+    if (primaryActionMode !== "resend") {
+      return;
+    }
+
     if (isResending) {
       return;
     }
@@ -353,6 +362,48 @@ function NewDetailCard({ user, checkInBadge }) {
         tone: "error",
         title: /unauthorized/i.test(message) ? "Admin session required" : "Welcome SMS failed",
         subject: "Welcome SMS",
+        detail: /unauthorized/i.test(message)
+          ? "Log in to the admin dashboard first."
+          : message,
+      });
+    } finally {
+      setIsResending(false);
+    }
+  }
+
+  async function handleAcceptToParty() {
+    if (primaryActionMode !== "accept" || isResending) {
+      return;
+    }
+
+    setIsResending(true);
+    setSendNotice(null);
+
+    try {
+      const result = await acceptWaitlistedInvite(user.id);
+      if (!result?.ok) {
+        throw new Error(result?.error ?? "Unable to accept guest.");
+      }
+
+      setSendNotice({
+        tone: "success",
+        title: "Accepted to the party",
+        subject: "Waitlist",
+        detail:
+          result.notificationDeliveryStatus === "sent"
+            ? "Invitation text sent."
+            : result.notificationDeliveryStatus === "skipped"
+              ? "Invitation text skipped."
+              : "Invitation text failed.",
+      });
+
+      onPrimaryActionComplete?.();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to accept guest.";
+      setSendNotice({
+        tone: "error",
+        title: /unauthorized/i.test(message) ? "Admin session required" : "Acceptance failed",
+        subject: "Waitlist",
         detail: /unauthorized/i.test(message)
           ? "Log in to the admin dashboard first."
           : message,
@@ -451,21 +502,39 @@ function NewDetailCard({ user, checkInBadge }) {
             </div>
           ) : null}
 
-          <button
-            className="secondary-button new-detail-action-button"
-            disabled={isResending || !user.phoneNumber}
-            type="button"
-            onClick={handleResendWelcome}
-          >
-            {isResending ? "Resending..." : "Resend welcome SMS"}
-          </button>
+          {primaryActionMode === "accept" ? (
+            <button
+              className="secondary-button new-detail-action-button"
+              disabled={isResending}
+              type="button"
+              onClick={handleAcceptToParty}
+            >
+              {isResending ? "Accepting..." : "accept to the party"}
+            </button>
+          ) : (
+            <button
+              className="secondary-button new-detail-action-button"
+              disabled={isResending || !user.phoneNumber}
+              type="button"
+              onClick={handleResendWelcome}
+            >
+              {isResending ? "Resending..." : "Resend welcome SMS"}
+            </button>
+          )}
         </div>
       </div>
     </article>
   );
 }
 
-function ExpandableUserCard({ user, isOpen, onToggle, showCheckInBadge = false }) {
+function ExpandableUserCard({
+  user,
+  isOpen,
+  onToggle,
+  showCheckInBadge = false,
+  primaryActionMode = "resend",
+  onPrimaryActionComplete,
+}) {
   const checkInBadge = showCheckInBadge ? getCheckInBadge(user) : null;
 
   return (
@@ -512,7 +581,12 @@ function ExpandableUserCard({ user, isOpen, onToggle, showCheckInBadge = false }
 
       <div className="new-card-body" aria-hidden={!isOpen}>
         <div className="new-card-body-inner">
-          <NewDetailCard checkInBadge={checkInBadge} user={user} />
+          <NewDetailCard
+            checkInBadge={checkInBadge}
+            onPrimaryActionComplete={onPrimaryActionComplete}
+            primaryActionMode={primaryActionMode}
+            user={user}
+          />
         </div>
       </div>
     </article>
@@ -538,7 +612,13 @@ function LoadingView({ title, variant }) {
   );
 }
 
-function NewListView({ title, users, isLoading = false }) {
+function NewListView({
+  title,
+  users,
+  isLoading = false,
+  primaryActionMode = "resend",
+  onPrimaryActionComplete,
+}) {
   const hasUsers = users.length > 0;
   const [selectedId, setSelectedId] = useState("");
 
@@ -567,9 +647,11 @@ function NewListView({ title, users, isLoading = false }) {
                     <ExpandableUserCard
                       isOpen={isActive}
                       key={user.id}
+                      onPrimaryActionComplete={onPrimaryActionComplete}
                       onToggle={() =>
                         setSelectedId((current) => (current === user.id ? "" : user.id))
                       }
+                      primaryActionMode={primaryActionMode}
                       user={user}
                     />
                   );
@@ -600,6 +682,8 @@ function AllListView({
   noMatchesBody,
   tone = "default",
   headerBadge = "",
+  primaryActionMode = "resend",
+  onPrimaryActionComplete,
 }) {
   const hasUsers = users.length > 0;
   const [selectedId, setSelectedId] = useState("");
@@ -654,9 +738,11 @@ function AllListView({
                     <ExpandableUserCard
                       isOpen={selectedId === user.id}
                       key={user.id}
+                      onPrimaryActionComplete={onPrimaryActionComplete}
                       onToggle={() =>
                         setSelectedId((current) => (current === user.id ? "" : user.id))
                       }
+                      primaryActionMode={primaryActionMode}
                       showCheckInBadge={showCheckInBadge}
                       user={user}
                     />
@@ -695,9 +781,19 @@ export function UserListPage({
   noMatchesBody,
   tone = "default",
   headerBadge = "",
+  primaryActionMode = "resend",
+  onPrimaryActionComplete,
 }) {
   if (variant === "new") {
-    return <NewListView isLoading={isLoading} title={title} users={users} />;
+    return (
+      <NewListView
+        isLoading={isLoading}
+        onPrimaryActionComplete={onPrimaryActionComplete}
+        primaryActionMode={primaryActionMode}
+        title={title}
+        users={users}
+      />
+    );
   }
 
   return (
@@ -709,6 +805,8 @@ export function UserListPage({
       noMatchesTitle={noMatchesTitle}
       headerBadge={headerBadge}
       listLabel={listLabel}
+      onPrimaryActionComplete={onPrimaryActionComplete}
+      primaryActionMode={primaryActionMode}
       tone={tone}
       showCheckInBadge={showCheckInBadge}
       title={title}

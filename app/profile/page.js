@@ -84,7 +84,7 @@ export default function ProfilePage() {
             ? ""
             : String(settingsData.capacity),
         );
-        setInviteCount(Number(overviewData.inviteCount ?? 0));
+        setInviteCount(Number(overviewData.registeredCount ?? overviewData.inviteCount ?? 0));
 
         const storedSession = readStoredSession();
         const localPhoto = typeof window === "undefined"
