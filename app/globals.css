@@ -3820,23 +3820,6 @@ img {
 .home-login-form {
   display: grid;
   gap: 12px;
-  padding-top: 14px;
-}
-
-.home-login-orb {
-  display: grid;
-  place-items: center;
-  padding: 4px 0 12px;
-}
-
-.home-login-orb span {
-  width: 64px;
-  height: 64px;
-  border-radius: 22px;
-  background: linear-gradient(180deg, rgba(181, 154, 255, 0.98), rgba(96, 69, 182, 0.98));
-  box-shadow:
-    0 0 0 10px rgba(181, 154, 255, 0.08),
-    0 12px 24px rgba(97, 69, 182, 0.26);
 }
 
 .home-login-input {

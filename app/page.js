@@ -116,10 +116,6 @@ export default function HomePage() {
             </button>
 
             <form className="home-login-form" onSubmit={isCodeStep ? handleVerifyCode : handleSendCode}>
-              <div className="home-login-orb" aria-hidden="true">
-                <span />
-              </div>
-
               <label className="sr-only" htmlFor="admin-phone">
                 Phone number
               </label>
@@ -146,7 +142,7 @@ export default function HomePage() {
                     autoComplete="one-time-code"
                     inputMode="numeric"
                     onChange={(event) => setCode(event.target.value)}
-                    placeholder="OTP"
+                    placeholder="Enter 5-digit code"
                     type="text"
                     value={code}
                     autoFocus={isCodeStep}
@@ -167,7 +163,7 @@ export default function HomePage() {
                 ) : null}
 
                 <button className="home-login-button" type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? (isCodeStep ? "VERIFYING" : "SENDING") : isCodeStep ? "VERIFY OTP" : "SEND OTP"}
+                  {isSubmitting ? (isCodeStep ? "VERIFYING" : "SENDING") : isCodeStep ? "VERIFY OTP" : "VERIFY THE CODE"}
                 </button>
               </div>
             </form>
