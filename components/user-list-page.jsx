@@ -501,6 +501,7 @@ function ExpandableUserCard({ user, isOpen, onToggle, showCheckInBadge = false }
               )
             ) : null}
           </div>
+          {showCheckInBadge ? null : <span className="status-chip roster-chip is-waitlist">waitlist</span>}
           <span className="new-list-meta">Barcode {getUserBarcode(user)}</span>
         </div>
 
@@ -587,7 +588,19 @@ function NewListView({ title, users, isLoading = false }) {
   );
 }
 
-function AllListView({ title, users, isLoading = false }) {
+function AllListView({
+  title,
+  users,
+  isLoading = false,
+  showCheckInBadge = true,
+  listLabel,
+  emptyTitle,
+  emptyBody,
+  noMatchesTitle,
+  noMatchesBody,
+  tone = "default",
+  headerBadge = "",
+}) {
   const hasUsers = users.length > 0;
   const [selectedId, setSelectedId] = useState("");
   const [query, setQuery] = useState("");
@@ -602,13 +615,17 @@ function AllListView({ title, users, isLoading = false }) {
   }
 
   const hasResults = visibleUsers.length > 0;
+  const rootClassName = `page-root detail-page all-page ${tone === "waitlist" ? "waitlist-page" : ""}`;
 
   return (
-    <main className="page-root detail-page all-page">
+    <main className={rootClassName}>
       <section className="screen-shell all-shell">
         <header className="new-topbar all-topbar">
           <div className="screen-heading new-heading all-heading">
-            <h1 className="screen-title">{title}</h1>
+            <h1 className="screen-title">
+              {title}
+              {headerBadge ? <span className="status-chip page-title-chip">{headerBadge}</span> : null}
+            </h1>
           </div>
           <div className="all-toolbar">
             <p className="all-count">{hasUsers ? `${visibleUsers.length} guests` : "No guests yet"}</p>
@@ -627,7 +644,10 @@ function AllListView({ title, users, isLoading = false }) {
 
         {hasResults ? (
           <div className="new-layout">
-            <section className="new-list-card" aria-label="Registered guest list">
+            <section
+              className={`new-list-card ${tone === "waitlist" ? "is-waitlist" : ""}`}
+              aria-label={listLabel ?? `${title} guest list`}
+            >
               <div className="new-list">
                 {visibleUsers.map((user) => {
                   return (
@@ -637,7 +657,7 @@ function AllListView({ title, users, isLoading = false }) {
                       onToggle={() =>
                         setSelectedId((current) => (current === user.id ? "" : user.id))
                       }
-                      showCheckInBadge
+                      showCheckInBadge={showCheckInBadge}
                       user={user}
                     />
                   );
@@ -647,8 +667,14 @@ function AllListView({ title, users, isLoading = false }) {
           </div>
         ) : (
           <div className="roster-empty new-empty">
-            <strong>{hasUsers ? "No matches." : "No guests yet."}</strong>
-            <p>{hasUsers ? "Try another search." : "Waiting on registrations."}</p>
+            <strong>
+              {hasUsers ? noMatchesTitle ?? "No matches." : emptyTitle ?? "No guests yet."}
+            </strong>
+            <p>
+              {hasUsers
+                ? noMatchesBody ?? "Try another search."
+                : emptyBody ?? "Waiting on registrations."}
+            </p>
           </div>
         )}
       </section>
@@ -656,10 +682,37 @@ function AllListView({ title, users, isLoading = false }) {
   );
 }
 
-export function UserListPage({ title, users, variant = "all", isLoading = false }) {
+export function UserListPage({
+  title,
+  users,
+  variant = "all",
+  isLoading = false,
+  showCheckInBadge = true,
+  listLabel,
+  emptyTitle,
+  emptyBody,
+  noMatchesTitle,
+  noMatchesBody,
+  tone = "default",
+  headerBadge = "",
+}) {
   if (variant === "new") {
     return <NewListView isLoading={isLoading} title={title} users={users} />;
   }
 
-  return <AllListView isLoading={isLoading} title={title} users={users} />;
+  return (
+    <AllListView
+      isLoading={isLoading}
+      emptyBody={emptyBody}
+      emptyTitle={emptyTitle}
+      noMatchesBody={noMatchesBody}
+      noMatchesTitle={noMatchesTitle}
+      headerBadge={headerBadge}
+      listLabel={listLabel}
+      tone={tone}
+      showCheckInBadge={showCheckInBadge}
+      title={title}
+      users={users}
+    />
+  );
 }

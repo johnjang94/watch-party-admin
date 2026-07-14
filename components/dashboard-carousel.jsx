@@ -17,8 +17,17 @@ const defaultThreads = [
     priority: true,
   },
   {
-    href: "/inquiry",
+    href: "/waitlisted",
     badge: "thread 02",
+    title: "Waitlisted",
+    summary: "Guests waiting for a spot, kept in the same thread flow.",
+    meta: "Open the waitlist thread",
+    alt: "Guest list illustration for the waitlist dashboard",
+    src: communityImage,
+  },
+  {
+    href: "/inquiry",
+    badge: "thread 03",
     title: "Inquiry",
     summary: "Open customer questions, replies, and follow-up history.",
     meta: "Open the inquiry inbox",
