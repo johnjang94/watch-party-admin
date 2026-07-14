@@ -518,9 +518,32 @@ function ExpandableUserCard({ user, isOpen, onToggle, showCheckInBadge = false }
   );
 }
 
-function NewListView({ title, users }) {
+function LoadingView({ title, variant }) {
+  return (
+    <main className={`page-root detail-page ${variant === "new" ? "new-page" : "all-page"}`}>
+      <section className={`screen-shell ${variant === "new" ? "new-shell" : "all-shell"}`}>
+        <header className={`new-topbar ${variant === "new" ? "" : "all-topbar"}`.trim()}>
+          <div className={`screen-heading new-heading ${variant === "new" ? "" : "all-heading"}`.trim()}>
+            <h1 className="screen-title">{title}</h1>
+          </div>
+        </header>
+
+        <div className="roster-empty new-empty" role="status" aria-live="polite">
+          <strong>Loading...</strong>
+          <p>Fetching guests from the database.</p>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function NewListView({ title, users, isLoading = false }) {
   const hasUsers = users.length > 0;
   const [selectedId, setSelectedId] = useState("");
+
+  if (isLoading) {
+    return <LoadingView title={title} variant="new" />;
+  }
 
   return (
     <main className="page-root detail-page new-page">
@@ -564,7 +587,7 @@ function NewListView({ title, users }) {
   );
 }
 
-function AllListView({ title, users }) {
+function AllListView({ title, users, isLoading = false }) {
   const hasUsers = users.length > 0;
   const [selectedId, setSelectedId] = useState("");
   const [query, setQuery] = useState("");
@@ -573,6 +596,10 @@ function AllListView({ title, users }) {
     () => users.filter((user) => matchesUser(user, query)),
     [query, users],
   );
+
+  if (isLoading) {
+    return <LoadingView title={title} variant="all" />;
+  }
 
   const hasResults = visibleUsers.length > 0;
 
@@ -629,10 +656,10 @@ function AllListView({ title, users }) {
   );
 }
 
-export function UserListPage({ title, users, variant = "all" }) {
+export function UserListPage({ title, users, variant = "all", isLoading = false }) {
   if (variant === "new") {
-    return <NewListView title={title} users={users} />;
+    return <NewListView isLoading={isLoading} title={title} users={users} />;
   }
 
-  return <AllListView title={title} users={users} />;
+  return <AllListView isLoading={isLoading} title={title} users={users} />;
 }

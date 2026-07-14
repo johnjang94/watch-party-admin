@@ -462,7 +462,7 @@ function InquiryAvatar({ alt, candidates, fallbackText, className = "inquiry-ava
   );
 }
 
-export function InquiryPage({ inquiries }) {
+export function InquiryPage({ inquiries, isLoading = false }) {
   const [items, setItems] = useState(() => inquiries);
   const [selectedGroupId, setSelectedGroupId] = useState("");
   const [selectedThreadId, setSelectedThreadId] = useState("");
@@ -496,6 +496,10 @@ export function InquiryPage({ inquiries }) {
   const detailCandidates = selectedGroup
     ? buildAvatarCandidates(selectedGroup, selectedThread)
     : [];
+
+  useEffect(() => {
+    setItems(inquiries);
+  }, [inquiries]);
 
   useEffect(() => {
     if (selectedThreadId && !items.some((item) => item.id === selectedThreadId)) {
@@ -805,6 +809,25 @@ export function InquiryPage({ inquiries }) {
           </form>
         </section>
       </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <main className="page-root detail-page inquiry-page">
+        <section className="screen-shell inquiry-shell">
+          <header className="new-topbar inquiry-topbar">
+            <div className="screen-heading new-heading inquiry-heading">
+              <h1 className="screen-title">Live queue</h1>
+            </div>
+          </header>
+
+          <div className="roster-empty new-empty inquiry-empty-search" role="status" aria-live="polite">
+            <strong>Loading...</strong>
+            <p>Fetching inquiries from the database.</p>
+          </div>
+        </section>
+      </main>
     );
   }
 
