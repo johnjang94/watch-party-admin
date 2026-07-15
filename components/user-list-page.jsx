@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { acceptWaitlistedInvite, resendWelcomeSms } from "../lib/admin-api";
+import { acceptWaitlistedInvite, getStoredAdminRole, resendWelcomeSms } from "../lib/admin-api";
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_CONTROL_URL ?? "https://fifa-control.onrender.com";
 
@@ -308,6 +308,8 @@ function NewDetailCard({
   const [sendNotice, setSendNotice] = useState(null);
   const [welcomeSmsState, setWelcomeSmsState] = useState(() => getWelcomeSmsState(user));
   const privacyPolicyState = useMemo(() => getPrivacyPolicyState(user), [user]);
+  const [adminRole] = useState(() => getStoredAdminRole());
+  const canAcceptGuests = adminRole !== "operator";
 
   useEffect(() => {
     setWelcomeSmsState(getWelcomeSmsState(user));
@@ -372,7 +374,7 @@ function NewDetailCard({
   }
 
   async function handleAcceptToParty() {
-    if (primaryActionMode !== "accept" || isResending) {
+    if (primaryActionMode !== "accept" || isResending || !canAcceptGuests) {
       return;
     }
 
@@ -505,7 +507,7 @@ function NewDetailCard({
           {primaryActionMode === "accept" ? (
             <button
               className="secondary-button new-detail-action-button"
-              disabled={isResending}
+              disabled={isResending || !canAcceptGuests}
               type="button"
               onClick={handleAcceptToParty}
             >

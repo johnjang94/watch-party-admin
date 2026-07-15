@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useCallback } from "react";
-import { getStoredAdminSessionId } from "../lib/admin-api";
+import { getStoredAdminRole, getStoredAdminSessionId } from "../lib/admin-api";
 
 const controlBaseUrl =
   process.env.NEXT_PUBLIC_CONTROL_URL ?? "https://fifa-control.onrender.com";
@@ -15,6 +15,7 @@ export function AdminDashboard() {
 
     return getStoredAdminSessionId();
   });
+  const [adminRole] = useState(() => getStoredAdminRole());
   const [adminSessionId] = useState(() => initialStoredSessionId);
   const [savedSessionId, setSavedSessionId] = useState(() => initialStoredSessionId);
   const [invites, setInvites] = useState([]);
@@ -28,6 +29,7 @@ export function AdminDashboard() {
   const [capacitySaving, setCapacitySaving] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const canEditCapacity = adminRole !== "operator";
 
   const loadDashboard = useCallback(async (sessionId) => {
     setLoading(true);
@@ -94,6 +96,10 @@ export function AdminDashboard() {
   }, [initialStoredSessionId, loadDashboard]);
 
   async function saveCapacity() {
+    if (!canEditCapacity) {
+      return;
+    }
+
     setCapacitySaving(true);
     setError("");
 
@@ -211,6 +217,7 @@ export function AdminDashboard() {
               <span className="sr-only">Invite capacity</span>
               <input
                 inputMode="numeric"
+                readOnly={!canEditCapacity}
                 onChange={(event) => setCapacity(event.target.value)}
                 placeholder="Capacity"
                 value={capacity}
@@ -221,6 +228,7 @@ export function AdminDashboard() {
               className="submit-button"
               onClick={() => void saveCapacity()}
               type="button"
+              disabled={!canEditCapacity || capacitySaving}
             >
               {capacitySaving ? "Saving..." : "Save"}
             </button>

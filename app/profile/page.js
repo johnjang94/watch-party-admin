@@ -6,6 +6,7 @@ import {
   fetchInviteOverview,
   fetchInviteSettings,
   getStoredAdminSessionId,
+  getStoredAdminRole,
   updateInviteBannerPhoto,
   updateInviteCapacity,
   updateInviteProfilePhoto,
@@ -43,9 +44,9 @@ export default function ProfilePage() {
   const profileInputRef = useRef(null);
   const bannerInputRef = useRef(null);
   const capacityInputRef = useRef(null);
-  const capacitySaveTimerRef = useRef(null);
   const previewUrlsRef = useRef(new Set());
   const [adminSessionId] = useState(() => getStoredAdminSessionId());
+  const [adminRole] = useState(() => getStoredAdminRole());
   const [displayName] = useState(() => formatDisplayName(readStoredSession()));
   const [phoneNumber] = useState(() => {
     const session = readStoredSession();
@@ -140,23 +141,6 @@ export default function ProfilePage() {
       window.clearTimeout(timer);
     };
   }, [capacitySavedAt]);
-
-  useEffect(() => {
-    if (!isCapacityEditing) {
-      return undefined;
-    }
-
-    window.clearTimeout(capacitySaveTimerRef.current);
-    capacitySaveTimerRef.current = window.setTimeout(() => {
-      if (capacityDraft !== capacity) {
-        void handleSaveCapacity(capacityDraft);
-      }
-    }, 450);
-
-    return () => {
-      window.clearTimeout(capacitySaveTimerRef.current);
-    };
-  }, [capacity, capacityDraft, isCapacityEditing]);
 
   useEffect(() => {
     if (!isCapacityEditing) {
@@ -304,6 +288,10 @@ export default function ProfilePage() {
   }
 
   async function handleModifyCapacity() {
+    if (!canEditCapacity) {
+      return;
+    }
+
     if (isCapacityEditing) {
       const saved = await handleSaveCapacity(capacityDraft);
       if (saved) {
@@ -339,6 +327,12 @@ export default function ProfilePage() {
   };
   const capacityStatusLabel =
     capacity === "" ? `${inviteCount} registered` : `${capacityCurrent} / ${capacityLimit}`;
+  const canEditCapacity = adminRole !== "operator";
+  const capacityNote = canEditCapacity
+    ? capacitySaving
+      ? "Saving changes..."
+      : capacityStatusLabel
+    : "Managers can edit capacity.";
 
   return (
     <main className="page-root profile-page">
@@ -414,9 +408,7 @@ export default function ProfilePage() {
           <div className="profile-capacity-head">
             <div className="profile-capacity-copy">
               <h2 className="profile-capacity-question">How many guests are you inviting in total?</h2>
-              <p className="profile-capacity-note">
-                {capacitySaving ? "Saving changes..." : capacityStatusLabel}
-              </p>
+              <p className="profile-capacity-note">{capacityNote}</p>
             </div>
 
             <label className="profile-capacity-value" aria-label="Guest capacity">
@@ -427,7 +419,7 @@ export default function ProfilePage() {
                 onChange={handleCapacityChange}
                 onKeyDown={handleCapacityKeyDown}
                 placeholder="30"
-                readOnly={!isCapacityEditing}
+                readOnly={!isCapacityEditing || !canEditCapacity}
                 type="text"
                 value={isCapacityEditing ? capacityDraft : capacityValue}
               />
@@ -438,9 +430,9 @@ export default function ProfilePage() {
             className="profile-modify-button"
             type="button"
             onClick={handleModifyCapacity}
-            disabled={capacitySaving || !adminSessionId}
+            disabled={capacitySaving || !adminSessionId || !canEditCapacity}
           >
-            {isCapacityEditing ? "Done" : "Modify"}
+            {isCapacityEditing ? "Save" : "Modify"}
           </button>
 
           {capacitySavedAt ? (
