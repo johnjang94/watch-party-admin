@@ -42,6 +42,8 @@ export default function ProfilePage() {
   const router = useRouter();
   const profileInputRef = useRef(null);
   const bannerInputRef = useRef(null);
+  const capacityInputRef = useRef(null);
+  const capacitySaveTimerRef = useRef(null);
   const previewUrlsRef = useRef(new Set());
   const [adminSessionId] = useState(() => getStoredAdminSessionId());
   const [displayName] = useState(() => formatDisplayName(readStoredSession()));
@@ -60,6 +62,8 @@ export default function ProfilePage() {
   const [bannerSaving, setBannerSaving] = useState(false);
   const [photoError, setPhotoError] = useState("");
   const [bannerError, setBannerError] = useState("");
+  const [isCapacityEditing, setIsCapacityEditing] = useState(false);
+  const [capacityDraft, setCapacityDraft] = useState("");
 
   useEffect(() => {
     if (!adminSessionId) {
@@ -80,6 +84,11 @@ export default function ProfilePage() {
         }
 
         setCapacity(
+          settingsData.capacity === null || settingsData.capacity === undefined
+            ? ""
+            : String(settingsData.capacity),
+        );
+        setCapacityDraft(
           settingsData.capacity === null || settingsData.capacity === undefined
             ? ""
             : String(settingsData.capacity),
@@ -131,6 +140,38 @@ export default function ProfilePage() {
       window.clearTimeout(timer);
     };
   }, [capacitySavedAt]);
+
+  useEffect(() => {
+    if (!isCapacityEditing) {
+      return undefined;
+    }
+
+    window.clearTimeout(capacitySaveTimerRef.current);
+    capacitySaveTimerRef.current = window.setTimeout(() => {
+      if (capacityDraft !== capacity) {
+        void handleSaveCapacity(capacityDraft);
+      }
+    }, 450);
+
+    return () => {
+      window.clearTimeout(capacitySaveTimerRef.current);
+    };
+  }, [capacity, capacityDraft, isCapacityEditing]);
+
+  useEffect(() => {
+    if (!isCapacityEditing) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      capacityInputRef.current?.focus();
+      capacityInputRef.current?.select();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [isCapacityEditing]);
 
   function revokePreviewUrl(url) {
     if (url && url.startsWith("blob:") && previewUrlsRef.current.has(url)) {
@@ -235,10 +276,15 @@ export default function ProfilePage() {
         throw new Error(data.error ?? "Unable to update capacity.");
       }
 
-      setCapacity(data.capacity === null || data.capacity === undefined ? "" : String(data.capacity));
+      const nextCapacity =
+        data.capacity === null || data.capacity === undefined ? "" : String(data.capacity);
+      setCapacity(nextCapacity);
+      setCapacityDraft(nextCapacity);
       setCapacitySavedAt(data.updatedAt ?? new Date().toISOString());
+      return true;
     } catch (error) {
       setCapacityError(error instanceof Error ? error.message : "Unable to update capacity.");
+      return false;
     } finally {
       setCapacitySaving(false);
     }
@@ -246,22 +292,28 @@ export default function ProfilePage() {
 
   function handleCapacityChange(event) {
     const nextValue = event.target.value.replace(/[^\d]/g, "");
-    setCapacity(nextValue);
-  }
-
-  function adjustCapacity(delta) {
-    const currentValue = Number.parseInt(capacity, 10);
-    const baseValue = Number.isInteger(currentValue) ? currentValue : 0;
-    const nextValue = Math.max(1, baseValue + delta);
-    setCapacity(String(nextValue));
-    void handleSaveCapacity(String(nextValue));
+    setCapacityDraft(nextValue);
+    setCapacityError("");
   }
 
   function handleCapacityKeyDown(event) {
     if (event.key === "Enter") {
       event.preventDefault();
-      void handleSaveCapacity();
+      void handleModifyCapacity();
     }
+  }
+
+  async function handleModifyCapacity() {
+    if (isCapacityEditing) {
+      const saved = await handleSaveCapacity(capacityDraft);
+      if (saved) {
+        setIsCapacityEditing(false);
+      }
+      return;
+    }
+
+    setCapacityDraft(capacity);
+    setIsCapacityEditing(true);
   }
 
   function handleLogout() {
@@ -285,8 +337,6 @@ export default function ProfilePage() {
       ? `linear-gradient(180deg, rgba(3, 9, 6, 0.14), rgba(3, 9, 6, 0.64)), url("${bannerPhotoUrl}")`
       : "linear-gradient(135deg, rgba(12, 26, 18, 0.94), rgba(21, 58, 40, 0.88))",
   };
-  const capacityLabel = capacityValue === "—" ? "No limit" : `${capacityValue} guests`;
-  const capacityButtonLabel = capacitySaving ? "Saving..." : capacitySavedAt ? "Saved" : "Save";
   const capacityStatusLabel =
     capacity === "" ? `${inviteCount} registered` : `${capacityCurrent} / ${capacityLimit}`;
 
@@ -361,61 +411,37 @@ export default function ProfilePage() {
         </article>
 
         <section className="profile-card profile-settings-card">
-          <div className="profile-section-head">
-            <h2 className="profile-section-title">Guests</h2>
-          </div>
+          <div className="profile-capacity-head">
+            <div className="profile-capacity-copy">
+              <h2 className="profile-capacity-question">How many guests are you inviting in total?</h2>
+              <p className="profile-capacity-note">
+                {capacitySaving ? "Saving changes..." : capacityStatusLabel}
+              </p>
+            </div>
 
-          <div className="profile-capacity-control" aria-label="Guest capacity">
-            <button
-              className="profile-capacity-step"
-              type="button"
-              onClick={() => adjustCapacity(-1)}
-              disabled={capacitySaving}
-              aria-label="Decrease capacity"
-            >
-              <span aria-hidden="true">−</span>
-            </button>
-
-            <label className="profile-capacity-field">
+            <label className="profile-capacity-value" aria-label="Guest capacity">
               <span className="sr-only">Guest capacity</span>
               <input
+                ref={capacityInputRef}
                 inputMode="numeric"
                 onChange={handleCapacityChange}
                 onKeyDown={handleCapacityKeyDown}
-                placeholder="0"
+                placeholder="30"
+                readOnly={!isCapacityEditing}
                 type="text"
-                value={capacity}
+                value={isCapacityEditing ? capacityDraft : capacityValue}
               />
             </label>
-
-            <button
-              className="profile-capacity-step"
-              type="button"
-              onClick={() => adjustCapacity(1)}
-              disabled={capacitySaving}
-              aria-label="Increase capacity"
-            >
-              <span aria-hidden="true">+</span>
-            </button>
           </div>
 
-          <div className="profile-capacity-foot">
-            <span className="profile-capacity-chip">
-              {capacitySaving ? "Saving" : capacityLabel}
-            </span>
-            <button
-              className="profile-save-button profile-capacity-save"
-              type="button"
-              onClick={() => void handleSaveCapacity()}
-              disabled={capacitySaving || !adminSessionId}
-            >
-              {capacityButtonLabel}
-            </button>
-          </div>
-
-          <p className="profile-capacity-status" aria-live="polite">
-            {capacityStatusLabel}
-          </p>
+          <button
+            className="profile-modify-button"
+            type="button"
+            onClick={handleModifyCapacity}
+            disabled={capacitySaving || !adminSessionId}
+          >
+            {isCapacityEditing ? "Done" : "Modify"}
+          </button>
 
           {capacitySavedAt ? (
             <p className="profile-success" role="status" aria-live="polite">

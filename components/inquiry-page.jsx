@@ -171,10 +171,6 @@ function makeSummary(item) {
   return item?.question || item?.answer || "New support ticket";
 }
 
-function makeReason(item) {
-  return String(item?.requestReason ?? "").trim();
-}
-
 function getInquiryTimestamp(item) {
   const candidates = [item?.updatedAt, item?.humanRequestedAt, item?.createdAt];
   for (const candidate of candidates) {
@@ -423,15 +419,6 @@ function matchesInquiryGroup(group, query, filterMode) {
 
 function getThreadCustomerName(group, item) {
   return normalize(item?.customer || group?.customer || "Unknown guest") || "Unknown guest";
-}
-
-function getThreadPreview(item) {
-  const preview = item?.thread?.find((line) => normalize(line?.message))?.message || makeSummary(item);
-  return normalize(preview);
-}
-
-function getThreadTitle(item) {
-  return normalize(item?.summaryTitle || item?.question || item?.answer || "New support ticket");
 }
 
 function getThreadLabel(item) {
@@ -956,42 +943,7 @@ export function InquiryPage({ inquiries, isLoading = false }) {
           </div>
         </header>
 
-        <div className="inquiry-thread-list">
-          {group.inquiries.map((item) => (
-            <ThreadPreviewButton key={item.id} group={group} item={item} onOpen={openThread} />
-          ))}
-        </div>
       </article>
-    );
-  }
-
-  function ThreadPreviewButton({ group, item, onOpen }) {
-    const readState = getThreadReadState(item);
-    const statusLabel = getThreadStatusLabel(item);
-
-    return (
-      <button
-        className={`inquiry-thread-preview ${readState.hasUnreadCustomerMessage ? "is-unread" : "is-read"}`}
-        onClick={() => onOpen(group.id, getInquiryActionId(item))}
-        type="button"
-      >
-        <div className="inquiry-thread-preview-head">
-          <strong>{getThreadTitle(item)}</strong>
-          {readState.hasUnreadCustomerMessage ? <span className="inquiry-unread-dot" aria-hidden="true" /> : null}
-        </div>
-        <div className="inquiry-thread-preview-meta">
-          <span>{getThreadLabel(item)}</span>
-          <span className={`status-chip inquiry-chip ${statusLabel === "Read" ? "is-read" : statusLabel === "Sending" ? "is-sending" : statusLabel === "Notified" ? "is-notified" : "is-delivered"}`}>
-            {statusLabel}
-          </span>
-        </div>
-        <p className="inquiry-thread-preview-snippet">{getThreadPreview(item)}</p>
-        {makeReason(item) ? (
-          <span className="status-chip is-muted inquiry-chip inquiry-reason-chip">
-            {makeReason(item)}
-          </span>
-        ) : null}
-      </button>
     );
   }
 
