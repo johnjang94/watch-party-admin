@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -29,7 +30,57 @@ function CameraIcon({ active }) {
 
 export function MobileNav() {
   const pathname = usePathname();
+  const [isHidden, setIsHidden] = useState(false);
   const isHome = pathname === "/";
+
+  useEffect(() => {
+    if (isHome) return;
+
+    let rafId = 0;
+    let lastScrollY = window.scrollY;
+    let ticking = false;
+
+    const isMobile = () => window.matchMedia("(max-width: 640px)").matches;
+
+    const updateVisibility = () => {
+      ticking = false;
+
+      if (!isMobile()) {
+        setIsHidden(false);
+        lastScrollY = window.scrollY;
+        return;
+      }
+
+      const currentScrollY = window.scrollY;
+      const delta = currentScrollY - lastScrollY;
+
+      if (currentScrollY <= 0) {
+        setIsHidden(false);
+      } else if (Math.abs(delta) > 4) {
+        setIsHidden(delta > 0);
+      }
+
+      lastScrollY = currentScrollY;
+    };
+
+    setIsHidden(false);
+    const onScroll = () => {
+      if (ticking) return;
+
+      ticking = true;
+      rafId = window.requestAnimationFrame(updateVisibility);
+    };
+
+    updateVisibility();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", updateVisibility);
+
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", updateVisibility);
+      window.cancelAnimationFrame(rafId);
+    };
+  }, [isHome, pathname]);
 
   if (isHome) return null;
 
@@ -43,7 +94,7 @@ export function MobileNav() {
   const isScan = pathname === "/scan";
 
   return (
-    <nav className="mobile-nav" aria-label="Primary">
+    <nav className={`mobile-nav ${isHidden ? "is-hidden" : ""}`} aria-label="Primary">
       <Link className={`mobile-nav-item ${isDashboard ? "is-active" : ""}`} href="/dashboard">
         <HomeIcon active={isDashboard} />
         <span>Dashboard</span>
