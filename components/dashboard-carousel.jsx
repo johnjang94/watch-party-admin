@@ -52,6 +52,15 @@ const defaultThreads = [
     alt: "Volunteer application cards for the admin dashboard",
     src: helpImage,
   },
+  {
+    href: "/broadcast-update",
+    badge: "thread 06",
+    title: "SMS Update",
+    summary: "Send a fresh event note to every invite",
+    meta: "one tap broadcast",
+    alt: "Broadcast update card for the admin dashboard",
+    src: helpImage,
+  },
 ];
 
 function ThreadMedia({ thread }) {

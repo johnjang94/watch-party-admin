@@ -1541,6 +1541,80 @@ img {
   color: rgba(255, 255, 255, 0.54);
 }
 
+.broadcast-update-card {
+  display: grid;
+  gap: 16px;
+}
+
+.broadcast-update-preview {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.03)),
+    rgba(7, 16, 12, 0.9);
+}
+
+.broadcast-update-kicker {
+  margin: 0;
+  color: rgba(244, 255, 248, 0.58);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.72rem;
+}
+
+.broadcast-update-message {
+  margin: 0;
+  white-space: pre-wrap;
+  color: var(--text);
+  line-height: 1.7;
+  font: inherit;
+}
+
+.broadcast-update-button {
+  width: 100%;
+}
+
+.broadcast-update-status {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.broadcast-update-summary {
+  display: grid;
+  gap: 6px;
+  padding: 4px 2px;
+}
+
+.broadcast-update-summary strong {
+  color: var(--text);
+  font-size: 0.98rem;
+  line-height: 1.5;
+}
+
+.broadcast-update-summary p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.broadcast-recipient-list {
+  display: grid;
+  gap: 12px;
+}
+
+.broadcast-recipient-card {
+  display: grid;
+  gap: 14px;
+}
+
+.broadcast-recipient-button {
+  width: 100%;
+}
+
 .profile-shell {
   display: grid;
   gap: 16px;
