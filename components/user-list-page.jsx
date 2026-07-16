@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { acceptWaitlistedInvite, getStoredAdminRole, resendWelcomeSms } from "../lib/admin-api";
+import {
+  acceptWaitlistedInvite,
+  fetchAdminActivityLogs,
+  getStoredAdminRole,
+  resendWelcomeSms,
+} from "../lib/admin-api";
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_CONTROL_URL ?? "https://fifa-control.onrender.com";
 
@@ -281,6 +286,94 @@ function getPrivacyPolicyState(user) {
   };
 }
 
+function formatActivityLabel(activity) {
+  const eventType = String(activity?.eventType ?? "").trim();
+  if (!eventType) {
+    return "activity";
+  }
+
+  return eventType.replace(/[-_]+/g, " ");
+}
+
+function formatActivityDetail(activity) {
+  const parts = [];
+  const pathname = String(activity?.pathname ?? "").trim();
+  const phoneNumber = String(activity?.phoneNumber ?? "").trim();
+  const sessionId = String(activity?.sessionId ?? "").trim();
+
+  if (pathname) {
+    parts.push(pathname);
+  }
+
+  if (phoneNumber) {
+    parts.push(phoneNumber);
+  }
+
+  if (sessionId) {
+    parts.push(sessionId.slice(0, 8));
+  }
+
+  return parts.join(" · ");
+}
+
+function ActivityLogModal({ error, isLoading, logs, user, onClose }) {
+  useEffect(() => {
+    function handleKeyDown(event) {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  return (
+    <div className="activity-log-backdrop" role="presentation" onClick={onClose}>
+      <article
+        aria-modal="true"
+        className="activity-log-modal"
+        role="dialog"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="activity-log-header">
+          <div>
+            <p className="activity-log-kicker">activity log</p>
+            <h3>
+              {user.firstName} {user.lastName}
+            </h3>
+          </div>
+          <button className="activity-log-close" type="button" onClick={onClose}>
+            close
+          </button>
+        </div>
+
+        <div className="activity-log-body">
+          {isLoading ? (
+            <p className="activity-log-empty">Loading logs...</p>
+          ) : error ? (
+            <p className="activity-log-empty">{error}</p>
+          ) : logs.length ? (
+            logs.map((activity) => (
+              <article className="activity-log-item" key={activity.id}>
+                <div className="activity-log-item-head">
+                  <strong>{formatActivityLabel(activity)}</strong>
+                  <time>{formatValue(activity.createdAt)}</time>
+                </div>
+                <p className="activity-log-item-detail">
+                  {formatActivityDetail(activity) || "No extra details."}
+                </p>
+              </article>
+            ))
+          ) : (
+            <p className="activity-log-empty">No activity recorded yet.</p>
+          )}
+        </div>
+      </article>
+    </div>
+  );
+}
+
 function UserAvatar({ user, className, fallbackClassName }) {
   const avatarCandidates = useMemo(() => buildAvatarCandidates(user), [user]);
   const secondaryCandidates = useMemo(() => avatarCandidates.slice(1), [avatarCandidates]);
@@ -301,6 +394,7 @@ function NewDetailCard({
   user,
   checkInBadge,
   primaryActionMode = "resend",
+  onOpenActivityLog,
   onPrimaryActionComplete,
 }) {
   const avatarCandidates = useMemo(() => buildAvatarCandidates(user), [user]);
@@ -523,6 +617,16 @@ function NewDetailCard({
               {isResending ? "Resending..." : "Resend welcome SMS"}
             </button>
           )}
+
+          {onOpenActivityLog ? (
+            <button
+              className="secondary-button new-detail-action-button"
+              type="button"
+              onClick={() => onOpenActivityLog(user)}
+            >
+              log
+            </button>
+          ) : null}
         </div>
       </div>
     </article>
@@ -535,6 +639,7 @@ function ExpandableUserCard({
   onToggle,
   showCheckInBadge = false,
   primaryActionMode = "resend",
+  onOpenActivityLog,
   onPrimaryActionComplete,
 }) {
   const checkInBadge = showCheckInBadge ? getCheckInBadge(user) : null;
@@ -585,6 +690,7 @@ function ExpandableUserCard({
         <div className="new-card-body-inner">
           <NewDetailCard
             checkInBadge={checkInBadge}
+            onOpenActivityLog={onOpenActivityLog}
             onPrimaryActionComplete={onPrimaryActionComplete}
             primaryActionMode={primaryActionMode}
             user={user}
@@ -690,11 +796,50 @@ function AllListView({
   const hasUsers = users.length > 0;
   const [selectedId, setSelectedId] = useState("");
   const [query, setQuery] = useState("");
+  const [activeLogUser, setActiveLogUser] = useState(null);
+  const [activityLogs, setActivityLogs] = useState([]);
+  const [activityLogsLoading, setActivityLogsLoading] = useState(false);
+  const [activityLogsError, setActivityLogsError] = useState("");
 
   const visibleUsers = useMemo(
     () => users.filter((user) => matchesUser(user, query)),
     [query, users],
   );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadLogs() {
+      if (!activeLogUser) {
+        return;
+      }
+
+      setActivityLogsLoading(true);
+      setActivityLogsError("");
+
+      try {
+        const logs = await fetchAdminActivityLogs({ inviteToken: activeLogUser.id });
+        if (!cancelled) {
+          setActivityLogs(logs);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setActivityLogs([]);
+          setActivityLogsError(error instanceof Error ? error.message : "Unable to load logs.");
+        }
+      } finally {
+        if (!cancelled) {
+          setActivityLogsLoading(false);
+        }
+      }
+    }
+
+    void loadLogs();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeLogUser]);
 
   if (isLoading) {
     return <LoadingView title={title} variant="all" />;
@@ -740,6 +885,7 @@ function AllListView({
                     <ExpandableUserCard
                       isOpen={selectedId === user.id}
                       key={user.id}
+                      onOpenActivityLog={(nextUser) => setActiveLogUser(nextUser)}
                       onPrimaryActionComplete={onPrimaryActionComplete}
                       onToggle={() =>
                         setSelectedId((current) => (current === user.id ? "" : user.id))
@@ -765,6 +911,15 @@ function AllListView({
             </p>
           </div>
         )}
+        {activeLogUser ? (
+          <ActivityLogModal
+            error={activityLogsError}
+            isLoading={activityLogsLoading}
+            logs={activityLogs}
+            user={activeLogUser}
+            onClose={() => setActiveLogUser(null)}
+          />
+        ) : null}
       </section>
     </main>
   );

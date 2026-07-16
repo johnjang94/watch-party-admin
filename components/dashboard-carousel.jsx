@@ -10,27 +10,36 @@ const defaultThreads = [
     href: "/registered",
     badge: "thread 01",
     title: "Registered",
-    summary: "Guest roster, check-in state, and capacity tracking.",
-    meta: "Open the registered guest list",
+    summary: "",
+    meta: "",
     alt: "Community photo for registered guests",
     src: communityImage,
     priority: true,
   },
   {
-    href: "/waitlisted",
+    href: "/portal-preview",
     badge: "thread 02",
+    title: "Portal Preview",
+    summary: "",
+    meta: "",
+    alt: "Preview card for the guest portal flow",
+    src: communityImage,
+  },
+  {
+    href: "/waitlisted",
+    badge: "thread 03",
     title: "Waitlisted",
-    summary: "Guests waiting for a spot, kept in the same thread flow.",
-    meta: "Open the waitlist thread",
+    summary: "",
+    meta: "",
     alt: "Guest list illustration for the waitlist dashboard",
     src: communityImage,
   },
   {
     href: "/inquiry",
-    badge: "thread 03",
+    badge: "thread 04",
     title: "Inquiry",
-    summary: "Open customer questions, replies, and follow-up history.",
-    meta: "Open the inquiry inbox",
+    summary: "",
+    meta: "",
     alt: "Help illustration for the inquiry dashboard",
     src: helpImage,
   },
@@ -72,8 +81,8 @@ export function DashboardCarousel({ cards = defaultThreads }) {
             <div className="dashboard-thread-copy">
               <span className="dashboard-thread-badge">{thread.badge}</span>
               <strong className="dashboard-thread-title">{thread.title}</strong>
-              <p className="dashboard-thread-summary">{thread.summary}</p>
-              <span className="dashboard-thread-meta">{thread.meta}</span>
+              {thread.summary ? <p className="dashboard-thread-summary">{thread.summary}</p> : null}
+              {thread.meta ? <span className="dashboard-thread-meta">{thread.meta}</span> : null}
             </div>
 
             <span className="dashboard-thread-arrow" aria-hidden="true">

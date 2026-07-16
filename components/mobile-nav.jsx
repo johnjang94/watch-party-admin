@@ -35,6 +35,7 @@ export function MobileNav() {
 
   const isDashboard =
     pathname === "/dashboard" ||
+    pathname === "/portal-preview" ||
     pathname === "/registered" ||
     pathname === "/waitlisted" ||
     pathname === "/inquiry";

@@ -35,6 +35,7 @@ export function AdminSessionGuard() {
   const router = useRouter();
   const pathname = usePathname();
   const timeoutRef = useRef(null);
+  const isPublicPreviewRoute = pathname === "/portal-preview";
 
   useEffect(() => {
     function clearSession() {
@@ -49,6 +50,10 @@ export function AdminSessionGuard() {
     function logout() {
       clearSession();
       redirectHome();
+    }
+
+    if (isPublicPreviewRoute) {
+      return undefined;
     }
 
     const session = parseSession(window.localStorage.getItem(SESSION_KEY));
@@ -104,7 +109,7 @@ export function AdminSessionGuard() {
 
       events.forEach((eventName) => window.removeEventListener(eventName, markActivity));
     };
-  }, [pathname, router]);
+  }, [isPublicPreviewRoute, pathname, router]);
 
   return null;
 }
