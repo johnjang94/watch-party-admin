@@ -43,6 +43,15 @@ const defaultThreads = [
     alt: "Help illustration for the inquiry dashboard",
     src: helpImage,
   },
+  {
+    href: "/volunteer-applications",
+    badge: "thread 05",
+    title: "Volunteer Application",
+    summary: "See what guests are bringing",
+    meta: "thread cards",
+    alt: "Volunteer application cards for the admin dashboard",
+    src: helpImage,
+  },
 ];
 
 function ThreadMedia({ thread }) {

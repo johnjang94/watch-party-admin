@@ -1495,6 +1495,52 @@ img {
   opacity: 0.65;
 }
 
+.volunteer-application-card {
+  gap: 16px;
+}
+
+.volunteer-application-card .inquiry-summary-button {
+  padding: 0;
+}
+
+.volunteer-application-body {
+  padding-top: 0;
+}
+
+.volunteer-thread-line {
+  display: grid;
+  gap: 8px;
+}
+
+.volunteer-thread-line strong {
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.72rem;
+}
+
+.volunteer-thread-line time {
+  color: rgba(244, 255, 248, 0.58);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.volunteer-applications-page .inquiry-detail-topcopy {
+  display: grid;
+  gap: 4px;
+  text-align: left;
+}
+
+.volunteer-applications-page .inquiry-detail-topcopy p {
+  margin: 0;
+  color: rgba(244, 255, 248, 0.62);
+}
+
+.volunteer-applications-page .inquiry-detail-topcopy .inquiry-detail-eyebrow {
+  color: rgba(255, 255, 255, 0.54);
+}
+
 .profile-shell {
   display: grid;
   gap: 16px;

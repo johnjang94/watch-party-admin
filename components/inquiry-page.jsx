@@ -913,113 +913,120 @@ export function InquiryPage({ inquiries, isLoading = false }) {
       : buildAvatarCandidates(group, group.latestInquiry);
     const latestInquiry = group.latestInquiry;
     const isOnline = group.inquiries.some(isCustomerOnline);
+    const isOpen = selectedGroup?.id === group.id;
+    const activeThread = isOpen ? selectedThread ?? latestInquiry : null;
+    const activeThreadId = activeThread ? getInquiryActionIdFromGroup(group, activeThread) : "";
+    const threadMessages = activeThread?.thread ?? [];
+    const draft = activeThread ? drafts[activeThreadId] ?? "" : "";
+    const statusLabel = getThreadStatusLabel(activeThread, { isSending: savingId === activeThreadId });
 
     return (
-      <article className="inquiry-card inquiry-panel" key={group.id}>
-        <header className="inquiry-card-head inquiry-panel-head">
-          <div className="inquiry-copy">
-            <div className="inquiry-heading-row">
-              <InquiryAvatar
-                alt=""
-                candidates={avatarCandidates}
-                fallbackText={initialsFromName(group.customer)}
-              />
+      <article className={`inquiry-card inquiry-panel ${isOpen ? "is-open" : ""}`} key={group.id}>
+        <button
+          className="inquiry-summary-button"
+          aria-expanded={isOpen}
+          onClick={() => {
+            if (isOpen) {
+              backToList();
+            } else {
+              openThread(group.id, getInquiryActionIdFromGroup(group, latestInquiry));
+            }
+          }}
+          type="button"
+        >
+          <header className="inquiry-card-head inquiry-panel-head">
+            <div className="inquiry-copy">
+              <div className="inquiry-heading-row">
+                <InquiryAvatar
+                  alt=""
+                  candidates={avatarCandidates}
+                  fallbackText={initialsFromName(group.customer)}
+                />
 
-              <div className="inquiry-copy-text">
-                <div className="inquiry-name-row">
-                  <p className="inquiry-name">{group.customer}</p>
-                  {isOnline ? <span className="inquiry-presence-dot" aria-hidden="true" /> : null}
+                <div className="inquiry-copy-text">
+                  <div className="inquiry-name-row">
+                    <p className="inquiry-name">{group.customer}</p>
+                    {isOnline ? <span className="inquiry-presence-dot" aria-hidden="true" /> : null}
+                  </div>
+                  <p className="inquiry-question inquiry-group-subtitle">
+                    {group.inquiries.length} thread{group.inquiries.length === 1 ? "" : "s"} ready
+                  </p>
                 </div>
-                <p className="inquiry-question inquiry-group-subtitle">
-                  {group.inquiries.length} thread{group.inquiries.length === 1 ? "" : "s"} ready
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="inquiry-chip-stack">
-            <span className="status-chip inquiry-chip">{group.inquiries.length} chats</span>
-            <span className="status-chip is-muted inquiry-chip">{getThreadReceiptLabel(latestInquiry)}</span>
-          </div>
-        </header>
-
-      </article>
-    );
-  }
-
-  function renderDetailView(group, thread) {
-    const avatarCandidates = detailCandidates.length ? detailCandidates : buildAvatarCandidates(group, thread);
-    const threadMessages = thread?.thread ?? [];
-    const threadId = getInquiryActionIdFromGroup(group, thread);
-    const draft = thread ? drafts[threadId] ?? "" : "";
-    const statusLabel = getThreadStatusLabel(thread, { isSending: savingId === threadId });
-    const isOnline = isCustomerOnline(thread);
-
-    return (
-      <div className="inquiry-detail-view">
-        <header className="inquiry-detail-topbar">
-          <button className="inquiry-back-button" onClick={backToList} type="button">
-            back
-          </button>
-          <div className="inquiry-detail-topcopy">
-            <p className="inquiry-detail-eyebrow">thread detail</p>
-            <h2>{group.customer}</h2>
-            <p>{getThreadLabel(thread)}</p>
-          </div>
-        </header>
-
-        <section className="inquiry-detail-card inquiry-panel">
-          <div className="inquiry-detail-header">
-            <div className="inquiry-heading-row">
-              <InquiryAvatar
-                alt=""
-                candidates={avatarCandidates}
-                fallbackText={initialsFromName(group.customer)}
-              />
-
-              <div className="inquiry-copy-text">
-                <div className="inquiry-name-row">
-                  <p className="inquiry-name">{group.customer}</p>
-                  {isOnline ? <span className="inquiry-presence-dot" aria-hidden="true" /> : null}
-                </div>
-                <p className="inquiry-question">{makeSummary(thread)}</p>
               </div>
             </div>
 
             <div className="inquiry-chip-stack">
-              <span className="status-chip inquiry-chip">{threadMessages.length} messages</span>
-              <span className="status-chip is-muted inquiry-chip">{getThreadReceiptLabel(thread)}</span>
-              <span className={`status-chip inquiry-chip ${statusLabel === "Read" ? "is-read" : statusLabel === "Sending" ? "is-sending" : statusLabel === "Notified" ? "is-notified" : "is-delivered"}`}>
-                {statusLabel}
-              </span>
+              <span className="status-chip inquiry-chip">{group.inquiries.length} chats</span>
+              <span className="status-chip is-muted inquiry-chip">{getThreadReceiptLabel(latestInquiry)}</span>
             </div>
+          </header>
+        </button>
+
+        {isOpen && activeThread ? (
+          <div className="inquiry-body">
+            <div className="inquiry-detail-header">
+              <div className="inquiry-heading-row">
+                <InquiryAvatar
+                  alt=""
+                  candidates={buildAvatarCandidates(group, activeThread)}
+                  fallbackText={initialsFromName(group.customer)}
+                />
+
+                <div className="inquiry-copy-text">
+                  <div className="inquiry-name-row">
+                    <p className="inquiry-name">{group.customer}</p>
+                    {isOnline ? <span className="inquiry-presence-dot" aria-hidden="true" /> : null}
+                  </div>
+                  <p className="inquiry-question">{makeSummary(activeThread)}</p>
+                </div>
+              </div>
+
+              <div className="inquiry-chip-stack">
+                <span className="status-chip inquiry-chip">{threadMessages.length} messages</span>
+                <span className="status-chip is-muted inquiry-chip">{getThreadReceiptLabel(activeThread)}</span>
+                <span
+                  className={`status-chip inquiry-chip ${
+                    statusLabel === "Read"
+                      ? "is-read"
+                      : statusLabel === "Sending"
+                        ? "is-sending"
+                        : statusLabel === "Notified"
+                          ? "is-notified"
+                          : "is-delivered"
+                  }`}
+                >
+                  {statusLabel}
+                </span>
+              </div>
+            </div>
+
+            <div className="inquiry-detail-thread" aria-label={`Conversation for ${group.customer}`}>
+              {renderThreadMessages(threadMessages, group, activeThread)}
+            </div>
+
+            <form
+              className="inquiry-reply-form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void handleReply(activeThread, group);
+              }}
+            >
+              <textarea
+                className="inquiry-reply-input"
+                placeholder="Reply"
+                rows={4}
+                value={draft}
+                onChange={(event) => updateDraft(activeThreadId, event.target.value)}
+              />
+
+              <button className="inquiry-reply-button" type="submit" disabled={savingId === activeThreadId}>
+                {savingId === activeThreadId ? "saving..." : "send reply"}
+              </button>
+            </form>
           </div>
+        ) : null}
 
-          <div className="inquiry-detail-thread" aria-label={`Conversation for ${group.customer}`}>
-            {renderThreadMessages(threadMessages, group, thread)}
-          </div>
-
-          <form
-            className="inquiry-reply-form"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void handleReply(thread, group);
-            }}
-          >
-            <textarea
-              className="inquiry-reply-input"
-              placeholder="Reply"
-              rows={4}
-              value={draft}
-              onChange={(event) => updateDraft(threadId, event.target.value)}
-            />
-
-            <button className="inquiry-reply-button" type="submit" disabled={savingId === threadId}>
-              {savingId === threadId ? "saving..." : "send reply"}
-            </button>
-          </form>
-        </section>
-      </div>
+      </article>
     );
   }
 
@@ -1046,67 +1053,61 @@ export function InquiryPage({ inquiries, isLoading = false }) {
     <main className="page-root detail-page inquiry-page">
       <section className="screen-shell inquiry-shell">
         {error ? <p className="inquiry-error">{error}</p> : null}
-        {selectedThread && selectedGroup ? (
-          renderDetailView(selectedGroup, selectedThread)
-        ) : (
-          <>
-            <header className="new-topbar inquiry-topbar">
-              <div className="screen-heading new-heading inquiry-heading">
-                <h1 className="screen-title">Live queue</h1>
-              </div>
-            </header>
+        <header className="new-topbar inquiry-topbar">
+          <div className="screen-heading new-heading inquiry-heading">
+            <h1 className="screen-title">Live queue</h1>
+          </div>
+        </header>
 
-            <form className="inquiry-toolbar" onSubmit={handleSearch}>
-              <label className="sr-only" htmlFor="inquiry-search-input">
-                Search inquiries
-              </label>
+        <form className="inquiry-toolbar" onSubmit={handleSearch}>
+          <label className="sr-only" htmlFor="inquiry-search-input">
+            Search inquiries
+          </label>
 
-              <button className="inquiry-search-button" type="submit" aria-label="Search inquiries">
-                <svg aria-hidden="true" viewBox="0 0 24 24">
-                  <path d="M10.5 4a6.5 6.5 0 1 1 4.1 11.55l4.07 4.07-1.41 1.41-4.07-4.07A6.5 6.5 0 0 1 10.5 4Zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z" />
-                </svg>
-              </button>
+          <button className="inquiry-search-button" type="submit" aria-label="Search inquiries">
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M10.5 4a6.5 6.5 0 1 1 4.1 11.55l4.07 4.07-1.41 1.41-4.07-4.07A6.5 6.5 0 0 1 10.5 4Zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z" />
+            </svg>
+          </button>
 
-              <label className="all-search-field inquiry-search-field">
-                <span className="sr-only">Search inquiries</span>
-                <input
-                  id="inquiry-search-input"
-                  className="field-input inquiry-search-input"
-                  placeholder="Search inquiries"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                />
-              </label>
+          <label className="all-search-field inquiry-search-field">
+            <span className="sr-only">Search inquiries</span>
+            <input
+              id="inquiry-search-input"
+              className="field-input inquiry-search-input"
+              placeholder="Search inquiries"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </label>
 
-              <label className="sr-only" htmlFor="inquiry-filter-select">
-                Search filter
-              </label>
-              <select
-                id="inquiry-filter-select"
-                className="field-input inquiry-filter-select"
-                value={filterMode}
-                onChange={(event) => setFilterMode(event.target.value)}
-              >
-                <option value="all">All fields</option>
-                <option value="name">Name</option>
-                <option value="phone">Phone</option>
-                <option value="id">ID</option>
-                <option value="keyword">Keyword</option>
-                <option value="date">Date</option>
-              </select>
-            </form>
+          <label className="sr-only" htmlFor="inquiry-filter-select">
+            Search filter
+          </label>
+          <select
+            id="inquiry-filter-select"
+            className="field-input inquiry-filter-select"
+            value={filterMode}
+            onChange={(event) => setFilterMode(event.target.value)}
+          >
+            <option value="all">All fields</option>
+            <option value="name">Name</option>
+            <option value="phone">Phone</option>
+            <option value="id">ID</option>
+            <option value="keyword">Keyword</option>
+            <option value="date">Date</option>
+          </select>
+        </form>
 
-            <div className="inquiry-list inquiry-grid">
-              {visibleGroups.map((group) => renderGroupCard(group))}
-            </div>
+        <div className="inquiry-list inquiry-grid">
+          {visibleGroups.map((group) => renderGroupCard(group))}
+        </div>
 
-            {!visibleGroups.length ? (
-              <div className="inquiry-empty-thread inquiry-empty-search">
-                {isSearchActive ? "No matches." : "No inquiries have been found"}
-              </div>
-            ) : null}
-          </>
-        )}
+        {!visibleGroups.length ? (
+          <div className="inquiry-empty-thread inquiry-empty-search">
+            {isSearchActive ? "No matches." : "No inquiries have been found"}
+          </div>
+        ) : null}
       </section>
     </main>
   );
