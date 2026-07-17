@@ -39,9 +39,6 @@ export default function WaitlistedPage() {
       emptyBody="Waiting for the waitlist to fill."
       emptyTitle="No waitlisted guests yet."
       listLabel="Waitlisted guest list"
-      headerBadge="WAITLIST"
-      tone="waitlist"
-      showCheckInBadge={false}
       noMatchesBody="Try another search."
       noMatchesTitle="No matches."
       onPrimaryActionComplete={() => setRefreshIndex((current) => current + 1)}

@@ -26,12 +26,12 @@ const defaultThreads = [
     src: communityImage,
   },
   {
-    href: "/waitlisted",
+    href: "/add",
     badge: "thread 03",
-    title: "Waitlisted",
+    title: "Add",
     summary: "",
     meta: "",
-    alt: "Guest list illustration for the waitlist dashboard",
+    alt: "Guest list illustration for the add members dashboard",
     src: communityImage,
   },
   {

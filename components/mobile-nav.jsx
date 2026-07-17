@@ -89,6 +89,7 @@ export function MobileNav() {
     pathname === "/portal-preview" ||
     pathname === "/registered" ||
     pathname === "/waitlisted" ||
+    pathname === "/add" ||
     pathname === "/inquiry";
   const isProfile = pathname === "/profile";
   const isScan = pathname === "/scan";
