@@ -5,14 +5,79 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import heroImage from "../../image.png";
 import profileImage from "../../selfie.jpg";
+import helpImage from "../../HELP.webp";
 
 const PHONE_LENGTH = 10;
-const QUICK_REPLIES = [
-  "What is this party about?",
-  "How do I register?",
-  "What happens after the survey?",
-  "Help with login",
+const SOURCE_OPTIONS = ["Friends", "Eventbrite", "Instagram", "Volleyball", "Run Club"];
+const YES_NO_OPTIONS = ["Yes", "No"];
+const SUPPORT_QUICK_REPLIES = [
+  {
+    label: "What is this party about?",
+    message: "What is this party about?",
+  },
+  {
+    label: "How do I register?",
+    message: "How do I register?",
+  },
+  {
+    label: "Activity hub help",
+    message: "I need help with the activity hub.",
+  },
+  {
+    label: "Information section",
+    message: "Where is the information section?",
+  },
+  {
+    label: "Privacy policy",
+    message: "Can you explain the privacy policy?",
+  },
+  {
+    label: "About my ticket",
+    message: "I need help with my ticket.",
+  },
+  {
+    label: "After survey",
+    message: "What happens after the survey?",
+  },
+  {
+    label: "Help with login",
+    message: "I need help with login / OTP.",
+  },
 ];
+const ACTIVITY_PROVIDED_ITEMS = [
+  {
+    name: "Gluten free sausages",
+    description: "Charred, fragrant, and served warm.",
+  },
+  {
+    name: "Chicken",
+    description: "Tender pieces with a polished finish.",
+  },
+  {
+    name: "Salmon rice",
+    description: "A warm main with a refined, comforting feel.",
+  },
+  {
+    name: "Skewers",
+    description: "Grilled and plated for easy grazing.",
+  },
+  {
+    name: "Fruit salad",
+    description: "Bright, chilled, and palate-cleansing.",
+  },
+];
+const ACTIVITY_ENTERTAINMENT_ITEMS = [
+  {
+    name: "Card game",
+    description: "A cozy table-side game for people who want to linger and laugh.",
+  },
+  {
+    name: "Soccer",
+    description: "A playful nod to the match-day energy that keeps the room alive.",
+  },
+];
+const ACTIVITY_VENUE_ADDRESS = "138 Downes Street, Toronto, ON M5E 0E4";
+const ACTIVITY_VENUE_MAP_URL = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ACTIVITY_VENUE_ADDRESS)}`;
 
 function normalize(value) {
   return String(value ?? "").trim();
@@ -144,6 +209,18 @@ function PreviewQr({ token, barcode }) {
 }
 
 function SupportMessage({ role, name, text, time, photo = false }) {
+  const formattedTime = (() => {
+    const date = new Date(time);
+    if (Number.isNaN(date.getTime())) {
+      return "now";
+    }
+
+    return new Intl.DateTimeFormat("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(date);
+  })();
+
   return (
     <article className={`preview-chat-bubble ${role === "assistant" ? "is-agent" : "is-guest"}`}>
       <div className="preview-chat-bubble-head">
@@ -159,10 +236,384 @@ function SupportMessage({ role, name, text, time, photo = false }) {
           )}
           <strong>{name}</strong>
         </div>
-        <time>{time}</time>
+        <time>{formattedTime}</time>
       </div>
       <p>{text}</p>
     </article>
+  );
+}
+
+function createInitialSupportMessages(name = "there") {
+  const createdAt = new Date().toISOString();
+  return [
+    {
+      role: "assistant",
+      name: "Miranda",
+      text: `Hi ${name}, welcome to FIFA X BTS support. My name is Miranda. I can help with registration, the waitlist, survey, login, the activity hub, the information section, privacy policy questions, ticket details, and general event navigation. What do you need help with today?`,
+      time: createdAt,
+    },
+  ];
+}
+
+function ActivityDisclosure({ title, children }) {
+  return (
+    <details className="portal-card portal-things-card activity-hub-disclosure">
+      <summary className="portal-things-trigger">
+        <span>{title}</span>
+        <span aria-hidden="true" className="portal-things-trigger-lock">
+          ⌄
+        </span>
+      </summary>
+      <div className="activity-hub-disclosure-panel">
+        <div className="portal-things-card-body">
+          <div className="activity-hub-card-copy">{children}</div>
+        </div>
+      </div>
+    </details>
+  );
+}
+
+function VenueMapPreview() {
+  return (
+    <div className="activity-hub-venue-map">
+      <iframe
+        className="activity-hub-map-iframe"
+        title="Google map of 138 Downes Street, Toronto, ON"
+        loading="lazy"
+        referrerPolicy="no-referrer-when-downgrade"
+        src={`https://www.google.com/maps?q=${encodeURIComponent(ACTIVITY_VENUE_ADDRESS)}&z=16&output=embed`}
+        allowFullScreen
+      />
+    </div>
+  );
+}
+
+function ActivityHubScreen({ onBackToPortal, onOpenSupport, onOpenSurvey }) {
+  return (
+    <section className="preview-portal-screen preview-activity-screen">
+      <section className="preview-portal-shell preview-activity-shell">
+        <div className="activity-hub-top-row">
+          <button aria-label="Back to portal" className="activity-hub-back-button" onClick={onBackToPortal} type="button">
+            ←
+          </button>
+        </div>
+
+        <header className="preview-portal-header">
+          <p className="preview-eyebrow">portal</p>
+          <h1>Information</h1>
+          <p className="preview-portal-lede">
+            The guest view keeps the venue notes, food highlights, and next steps in one place.
+          </p>
+        </header>
+
+        <ActivityDisclosure title="What is provided">
+          <p className="portal-card-copy activity-hub-menu-intro">
+            An elevated spread of familiar favorites, plated with a relaxed restaurant feel.
+          </p>
+          <div className="activity-hub-menu-grid">
+            {ACTIVITY_PROVIDED_ITEMS.map((item, index) => (
+              <article className="activity-hub-food-card" key={item.name}>
+                <div className="activity-hub-food-photo-wrap">
+                  <span className="activity-hub-food-thumb" aria-hidden="true">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                </div>
+                <div className="activity-hub-food-copy">
+                  <strong className="activity-hub-food-name">{item.name}</strong>
+                  <p>{item.description}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+          <p className="portal-card-copy activity-hub-menu-footnote">
+            Plus a few extra dishes to keep the table feeling generous.
+          </p>
+        </ActivityDisclosure>
+
+        <ActivityDisclosure title="Entertainment">
+          <p className="portal-card-copy activity-hub-menu-intro">
+            A playful party corner with a table game and a soccer nod to keep the room buzzing
+            between bites and laughs.
+          </p>
+          <div className="activity-hub-menu-grid">
+            {ACTIVITY_ENTERTAINMENT_ITEMS.map((item, index) => (
+              <article className="activity-hub-food-card" key={item.name}>
+                <div className="activity-hub-food-photo-wrap">
+                  <span className="activity-hub-food-thumb is-accent" aria-hidden="true">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                </div>
+                <div className="activity-hub-food-copy">
+                  <strong className="activity-hub-food-name">{item.name}</strong>
+                  <p>{item.description}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+          <p className="portal-card-copy activity-hub-menu-footnote">
+            Perfect for the in-between moments when guests want to mingle, smile, and stay in the party mood.
+          </p>
+        </ActivityDisclosure>
+
+        <ActivityDisclosure title="About the venue">
+          <VenueMapPreview />
+          <p className="portal-card-copy activity-hub-venue-copy">
+            we are going to have our party{" "}
+            <Link className="activity-hub-inline-link" href={ACTIVITY_VENUE_MAP_URL} rel="noreferrer" target="_blank">
+              here
+            </Link>
+            .
+          </p>
+        </ActivityDisclosure>
+
+        <ActivityDisclosure title="Date &amp; Time">
+          <dl className="activity-hub-datetime">
+            <div>
+              <dt>Date</dt>
+              <dd>Sunday, July 19, 2026</dd>
+            </div>
+            <div>
+              <dt>Time</dt>
+              <dd>1 PM ~ 5 PM EST</dd>
+            </div>
+          </dl>
+        </ActivityDisclosure>
+
+        <ActivityDisclosure title="HELP NEEDED">
+          <div className="activity-hub-help-needed">
+            <div className="activity-hub-help-image-wrap">
+              <Image alt="Help wanted illustration" className="activity-hub-help-image" src={helpImage} />
+            </div>
+            <p className="portal-card-copy activity-hub-help-copy">
+              can we get some help with food, cutleries, and set up, please?
+            </p>
+          </div>
+          <button className="preview-action-button activity-hub-volunteer-link" onClick={onOpenSurvey} type="button">
+            Volunteer Application
+          </button>
+        </ActivityDisclosure>
+
+        <div className="preview-action-stack" aria-label="Activity actions">
+          <button className="preview-action-button" onClick={onOpenSurvey} type="button">
+            survey
+          </button>
+          <button className="preview-action-button" onClick={onOpenSupport} type="button">
+            questions?
+          </button>
+          <button className="preview-action-button is-secondary" onClick={onBackToPortal} type="button">
+            back to portal
+          </button>
+        </div>
+      </section>
+    </section>
+  );
+}
+
+function SurveyScreen({ answers, error, isSubmitting, onBackToActivity, onChange, onSubmit }) {
+  const isFriends = answers.howDidYouKnow === "Friends";
+  const isComplete =
+    Boolean(answers.howDidYouKnow) &&
+    (!isFriends || Boolean(normalize(answers.referredBy))) &&
+    Boolean(normalize(answers.dietaryRestrictions)) &&
+    Boolean(answers.resident);
+
+  return (
+    <section className="preview-portal-screen preview-survey-screen">
+      <section className="preview-portal-shell preview-survey-shell">
+        <header className="preview-portal-header">
+          <p className="preview-eyebrow">survey</p>
+          <h1>Tell us a bit more</h1>
+          <p className="preview-portal-lede">
+            This mirrors the guest survey after the main portal flow.
+          </p>
+        </header>
+
+        <form className="preview-survey-form" onSubmit={onSubmit}>
+          <label className="preview-survey-question">
+            <span className="preview-survey-label">Q. How did you get to know about this event?</span>
+            <select
+              className="preview-login-field-input"
+              onChange={(event) => onChange("howDidYouKnow", event.target.value)}
+              value={answers.howDidYouKnow}
+            >
+              <option value="">Select one</option>
+              {SOURCE_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {isFriends ? (
+            <label className="preview-survey-question">
+              <span className="preview-survey-label">
+                Q. If you chose friends, who referred or invited you?
+              </span>
+              <input
+                className="preview-login-field-input"
+                onChange={(event) => onChange("referredBy", event.target.value)}
+                placeholder="Name"
+                type="text"
+                value={answers.referredBy}
+              />
+            </label>
+          ) : null}
+
+          <label className="preview-survey-question">
+            <span className="preview-survey-label">Q. Do you have any dietary restrictions?</span>
+            <input
+              className="preview-login-field-input"
+              onChange={(event) => onChange("dietaryRestrictions", event.target.value)}
+              placeholder="Type your answer"
+              type="text"
+              value={answers.dietaryRestrictions}
+            />
+          </label>
+
+          <label className="preview-survey-question">
+            <span className="preview-survey-label">
+              Q. Are you a resident in this building where the party is hosted?
+            </span>
+            <select
+              className="preview-login-field-input"
+              onChange={(event) => onChange("resident", event.target.value)}
+              value={answers.resident}
+            >
+              <option value="">Select one</option>
+              {YES_NO_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {error ? <p className="preview-status is-error">{error}</p> : null}
+
+          <div className="preview-action-stack">
+            <button className={`preview-action-button ${isComplete ? "" : "is-disabled"}`} disabled={!isComplete || isSubmitting} type="submit">
+              {isSubmitting ? "submitting..." : "submit"}
+            </button>
+            <button className="preview-action-button is-secondary" onClick={onBackToActivity} type="button">
+              back to activity hub
+            </button>
+          </div>
+        </form>
+      </section>
+    </section>
+  );
+}
+
+function SurveyDoneScreen({ onBackToPortal }) {
+  return (
+    <section className="preview-portal-screen preview-survey-done-screen">
+      <section className="preview-portal-shell preview-survey-done-shell">
+        <header className="preview-portal-header">
+          <p className="preview-eyebrow">survey done</p>
+          <h1>Thank you.</h1>
+          <p className="preview-portal-lede">stay tuned for more updates!</p>
+        </header>
+
+        <div className="preview-action-stack">
+          <button className="preview-action-button" onClick={onBackToPortal} type="button">
+            back to portal
+          </button>
+        </div>
+      </section>
+    </section>
+  );
+}
+
+function SupportScreen({
+  messages,
+  value,
+  isSending,
+  error,
+  connectionStatus,
+  onBack,
+  onQuickReply,
+  onSend,
+  onValueChange,
+  onFinishChat,
+}) {
+  return (
+    <section className="preview-support-screen">
+      <section className="preview-support-shell">
+        <div className="support-top-actions">
+          <button aria-label="Back" className="support-back-button" onClick={onBack} type="button">
+            back
+          </button>
+        </div>
+
+        <header className="preview-support-header">
+          <p className="preview-eyebrow">support</p>
+          <h1>Live chat</h1>
+        </header>
+
+        <div className="preview-support-chat support-live-panel">
+          <div className="preview-chat-thread chatbot-messages">
+            {messages.map((message, index) => (
+              <SupportMessage
+                key={`${message.role}-${index}`}
+                name={message.name}
+                photo={message.role === "assistant"}
+                role={message.role === "assistant" ? "assistant" : "guest"}
+                text={message.text}
+                time={message.time}
+              />
+            ))}
+          </div>
+
+          {connectionStatus ? (
+            <p className="preview-status" role="status">
+              {connectionStatus}
+            </p>
+          ) : null}
+
+          {error ? (
+            <p className="preview-status is-error" role="alert">
+              {error}
+            </p>
+          ) : null}
+
+          <div className="preview-quick-replies support-quick-replies" aria-label="Quick questions">
+            {SUPPORT_QUICK_REPLIES.map((reply) => (
+              <button
+                className="preview-quick-reply support-quick-reply"
+                disabled={isSending}
+                key={reply.message}
+                onClick={() => onQuickReply(reply.message)}
+                type="button"
+              >
+                {reply.label}
+              </button>
+            ))}
+          </div>
+
+          <form className="preview-chat-form chatbot-form" onSubmit={onSend}>
+            <label className="preview-chat-field">
+              <span className="sr-only">Send a message</span>
+              <input
+                aria-label="Send a message"
+                onChange={(event) => onValueChange(event.target.value)}
+                placeholder="Type your message..."
+                value={value}
+              />
+            </label>
+            <button className="preview-chat-send chatbot-send-button" disabled={isSending || !value.trim()} type="submit">
+              {isSending ? "..." : "→"}
+            </button>
+          </form>
+        </div>
+
+        <div className="support-bottom-actions">
+          <button className="preview-action-button" onClick={onFinishChat} type="button">
+            finish the chat
+          </button>
+        </div>
+      </section>
+    </section>
   );
 }
 
@@ -258,7 +709,7 @@ function PortalScreen({
   onBackToHome,
   onOpenTicket,
   onCloseTicket,
-  onOpenThingsToKnow,
+  onOpenActivity,
   onOpenSupport,
   onOpenPrivacy,
   onChangeRsvp,
@@ -361,7 +812,7 @@ function PortalScreen({
           <button className="preview-action-button" onClick={onOpenTicket} type="button">
             about my ticket
           </button>
-          <button className="preview-action-button" onClick={onOpenThingsToKnow} type="button">
+          <button className="preview-action-button" onClick={onOpenActivity} type="button">
             things to know
           </button>
           <button className="preview-action-button" onClick={onOpenSupport} type="button">
@@ -372,61 +823,6 @@ function PortalScreen({
           </button>
           <button className="preview-action-button is-secondary" onClick={onBackToHome} type="button">
             log out
-          </button>
-        </div>
-      </section>
-    </section>
-  );
-}
-
-function SupportScreen({ customerName, messages, value, onBack, onQuickReply, onSend, onValueChange }) {
-  return (
-    <section className="preview-support-screen">
-      <section className="preview-support-shell">
-        <header className="preview-support-header">
-          <p className="preview-eyebrow">support</p>
-          <h1>How can we help?</h1>
-          <p className="preview-support-lede">
-            This mirrors the live support experience, with the OTP step intentionally skipped.
-          </p>
-        </header>
-
-        <div className="preview-support-chat">
-          <div className="preview-chat-thread">
-            {messages.map((message, index) => (
-              <SupportMessage
-                key={`${message.role}-${index}`}
-                {...message}
-                photo={message.role === "assistant"}
-              />
-            ))}
-          </div>
-
-          <div className="preview-quick-replies">
-            {QUICK_REPLIES.map((reply) => (
-              <button className="preview-quick-reply" key={reply} onClick={() => onQuickReply(reply)} type="button">
-                {reply}
-              </button>
-            ))}
-          </div>
-
-          <form className="preview-chat-form" onSubmit={onSend}>
-            <label className="preview-chat-field">
-              <span className="sr-only">Message</span>
-              <input
-                aria-label="Message"
-                onChange={(event) => onValueChange(event.target.value)}
-                placeholder={`Message ${customerName}`}
-                value={value}
-              />
-            </label>
-            <button className="preview-chat-send" type="submit">
-              send
-            </button>
-          </form>
-
-          <button className="preview-back-button" onClick={onBack} type="button">
-            back to portal
           </button>
         </div>
       </section>
@@ -446,33 +842,18 @@ function PrivacyModal({ onClose }) {
         <p className="preview-card-kicker">privacy policy</p>
         <h2>please agree to continue</h2>
         <div className="preview-modal-copy">
-          <p>We use your name, phone number, profile photo, RSVP, and support details to manage your registration and event communications.</p>
-          <p>We do not sell your information. We share it only with trusted service providers who help us run the event.</p>
-          <p>We keep it only as long as needed for event operations, safety, and legal or security requirements.</p>
-        </div>
-        <button className="preview-modal-close" onClick={onClose} type="button">
-          close
-        </button>
-      </article>
-    </div>
-  );
-}
-
-function ThingsToKnowModal({ onClose }) {
-  return (
-    <div className="preview-modal-backdrop" role="presentation" onClick={onClose}>
-      <article
-        aria-modal="true"
-        className="preview-modal"
-        onClick={(event) => event.stopPropagation()}
-        role="dialog"
-      >
-        <p className="preview-card-kicker">things to know</p>
-        <h2>Before you head in</h2>
-        <div className="preview-modal-copy">
-          <p>Check in is available from your ticket card and your RSVP can still be reviewed from there.</p>
-          <p>Questions go straight to support, and the activity hub keeps the event notes in one place.</p>
-          <p>This preview is unlocked so you can jump between sections without the live gate.</p>
+          <p>
+            We use your name, phone number, profile photo, RSVP, and support details to manage
+            your registration and event communications.
+          </p>
+          <p>
+            We do not sell your information. We share it only with trusted service providers who
+            help us run the event.
+          </p>
+          <p>
+            We keep it only as long as needed for event operations, safety, and legal or security
+            requirements.
+          </p>
         </div>
         <button className="preview-modal-close" onClick={onClose} type="button">
           close
@@ -483,15 +864,14 @@ function ThingsToKnowModal({ onClose }) {
 }
 
 export default function PortalPreviewPage() {
-  const [screen, setScreen] = useState("home");
+  const [screen, setScreen] = useState("portal");
   const [loginOpen, setLoginOpen] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState("4155550198");
   const [phoneError, setPhoneError] = useState("");
   const [phoneStatus, setPhoneStatus] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [activePanel, setActivePanel] = useState("ticket");
-  const [showThingsToKnow, setShowThingsToKnow] = useState(false);
-  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [activePanel, setActivePanel] = useState(null);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(true);
   const [rsvp, setRsvp] = useState("Going");
   const [previewState, setPreviewState] = useState({
     displayName: "Miranda Park",
@@ -502,14 +882,20 @@ export default function PortalPreviewPage() {
     profilePhotoAiGenerated: false,
   });
   const [supportValue, setSupportValue] = useState("Need help with check-in.");
-  const [supportMessages, setSupportMessages] = useState([
-    {
-      role: "assistant",
-      name: "Miranda",
-      text: "Hi Miranda, welcome to FIFA X BTS support. How can I help you today?",
-      time: "now",
-    },
-  ]);
+  const [supportMessages, setSupportMessages] = useState(() =>
+    createInitialSupportMessages("Miranda Park"),
+  );
+  const [supportError, setSupportError] = useState("");
+  const [supportConnectionStatus, setSupportConnectionStatus] = useState("");
+  const [supportSending, setSupportSending] = useState(false);
+  const [surveyAnswers, setSurveyAnswers] = useState({
+    howDidYouKnow: "",
+    referredBy: "",
+    dietaryRestrictions: "",
+    resident: "",
+  });
+  const [surveyError, setSurveyError] = useState("");
+  const [surveySubmitting, setSurveySubmitting] = useState(false);
 
   useEffect(() => {
     if (!loginOpen) {
@@ -522,14 +908,26 @@ export default function PortalPreviewPage() {
     return undefined;
   }, [loginOpen]);
 
-  function goHome() {
-    setScreen("home");
+  function resetPreview() {
+    setScreen("portal");
     setLoginOpen(false);
     setPhoneError("");
     setPhoneStatus("");
-    setActivePanel("ticket");
-    setShowThingsToKnow(false);
-    setShowPrivacyModal(false);
+    setActivePanel(null);
+    setShowPrivacyModal(true);
+    setSupportValue("Need help with check-in.");
+    setSupportMessages(createInitialSupportMessages("Miranda Park"));
+    setSupportError("");
+    setSupportConnectionStatus("");
+    setSupportSending(false);
+    setSurveyAnswers({
+      howDidYouKnow: "",
+      referredBy: "",
+      dietaryRestrictions: "",
+      resident: "",
+    });
+    setSurveyError("");
+    setSurveySubmitting(false);
   }
 
   function handleStartPortal(event) {
@@ -556,9 +954,54 @@ export default function PortalPreviewPage() {
       profilePhotoAiGenerated: false,
     });
     setScreen("portal");
-    setActivePanel("ticket");
+    setActivePanel(null);
     setLoginOpen(false);
+    setShowPrivacyModal(true);
+    setSupportValue("Need help with check-in.");
+    setSupportMessages(createInitialSupportMessages("Miranda Park"));
+    setSupportError("");
+    setSupportConnectionStatus("");
+    setSupportSending(false);
     setIsSubmitting(false);
+  }
+
+  function updateSurveyAnswer(field, value) {
+    setSurveyError("");
+    setSurveyAnswers((current) => {
+      const next = { ...current, [field]: value };
+
+      if (field === "howDidYouKnow" && value !== "Friends") {
+        next.referredBy = "";
+      }
+
+      return next;
+    });
+  }
+
+  async function handleSurveySubmit(event) {
+    event.preventDefault();
+
+    const isFriends = surveyAnswers.howDidYouKnow === "Friends";
+    const isComplete =
+      Boolean(surveyAnswers.howDidYouKnow) &&
+      (!isFriends || Boolean(normalize(surveyAnswers.referredBy))) &&
+      Boolean(normalize(surveyAnswers.dietaryRestrictions)) &&
+      Boolean(surveyAnswers.resident);
+
+    if (!isComplete || surveySubmitting) {
+      return;
+    }
+
+    setSurveySubmitting(true);
+    setSurveyError("");
+
+    try {
+      setScreen("survey-done");
+    } catch (err) {
+      setSurveyError(err instanceof Error ? err.message : "Unable to save survey.");
+    } finally {
+      setSurveySubmitting(false);
+    }
   }
 
   function handleQuickReply(reply) {
@@ -568,13 +1011,13 @@ export default function PortalPreviewPage() {
         role: "guest",
         name: "You",
         text: reply,
-        time: "now",
+        time: new Date().toISOString(),
       },
       {
         role: "assistant",
         name: "Miranda",
         text: "Absolutely. I can help with that right here in preview mode.",
-        time: "now",
+        time: new Date().toISOString(),
       },
     ]);
   }
@@ -593,24 +1036,55 @@ export default function PortalPreviewPage() {
         role: "guest",
         name: "You",
         text: trimmed,
-        time: "now",
+        time: new Date().toISOString(),
       },
       {
         role: "assistant",
         name: "Miranda",
         text: "Thanks. I’ve noted that in the preview flow.",
-        time: "now",
+        time: new Date().toISOString(),
       },
     ]);
     setSupportValue("");
   }
 
+  function handleFinishChat() {
+    setSupportValue("");
+    setSupportMessages(createInitialSupportMessages(previewState.displayName));
+    setSupportError("");
+    setSupportConnectionStatus("");
+    setSupportSending(false);
+    setScreen("portal");
+  }
+
   const liveScreen =
-    screen === "support" ? (
+    screen === "privacy" ? (
+      <PortalScreen
+        activePanel={activePanel}
+        barcode={previewState.barcode}
+        displayName={previewState.displayName}
+        inviteToken={previewState.inviteToken}
+        onBackToHome={resetPreview}
+        onCloseTicket={() => setActivePanel("")}
+        onChangeRsvp={(nextRsvp) => setRsvp(nextRsvp)}
+        onOpenActivity={() => setScreen("activity")}
+        onOpenSupport={() => setScreen("support")}
+        onOpenPrivacy={() => setShowPrivacyModal(true)}
+        onOpenTicket={() => setActivePanel("ticket")}
+        phoneNumber={phoneNumber}
+        profilePhotoAiGenerated={previewState.profilePhotoAiGenerated}
+        profilePhotoTag={previewState.profilePhotoTag}
+        profilePhotoUrl={previewState.profilePhotoUrl}
+        rsvp={rsvp}
+      />
+    ) : screen === "support" ? (
       <SupportScreen
-        customerName={previewState.displayName}
+        connectionStatus={supportConnectionStatus}
+        error={supportError}
+        isSending={supportSending}
         messages={supportMessages}
         onBack={() => setScreen("portal")}
+        onFinishChat={handleFinishChat}
         onQuickReply={handleQuickReply}
         onSend={handleSendSupport}
         onValueChange={setSupportValue}
@@ -622,10 +1096,10 @@ export default function PortalPreviewPage() {
         barcode={previewState.barcode}
         displayName={previewState.displayName}
         inviteToken={previewState.inviteToken}
-        onBackToHome={goHome}
+        onBackToHome={resetPreview}
         onCloseTicket={() => setActivePanel("")}
         onChangeRsvp={(nextRsvp) => setRsvp(nextRsvp)}
-        onOpenThingsToKnow={() => setShowThingsToKnow(true)}
+        onOpenActivity={() => setScreen("activity")}
         onOpenSupport={() => setScreen("support")}
         onOpenPrivacy={() => setShowPrivacyModal(true)}
         onOpenTicket={() => setActivePanel("ticket")}
@@ -635,6 +1109,23 @@ export default function PortalPreviewPage() {
         profilePhotoUrl={previewState.profilePhotoUrl}
         rsvp={rsvp}
       />
+    ) : screen === "activity" ? (
+      <ActivityHubScreen
+        onBackToPortal={() => setScreen("portal")}
+        onOpenSupport={() => setScreen("support")}
+        onOpenSurvey={() => setScreen("survey")}
+      />
+    ) : screen === "survey" ? (
+      <SurveyScreen
+        answers={surveyAnswers}
+        error={surveyError}
+        isSubmitting={surveySubmitting}
+        onBackToActivity={() => setScreen("activity")}
+        onChange={updateSurveyAnswer}
+        onSubmit={handleSurveySubmit}
+      />
+    ) : screen === "survey-done" ? (
+      <SurveyDoneScreen onBackToPortal={() => setScreen("portal")} />
     ) : (
       <LoginScreen
         isOpen={loginOpen}
@@ -655,18 +1146,50 @@ export default function PortalPreviewPage() {
           <p className="preview-eyebrow">thread 02</p>
           <h1>Portal preview</h1>
           <p className="preview-admin-copy">
-            OTP step removed. This now stays focused on the live portal layout, ticket card, support, and privacy flow.
+            Starts where a guest starts: privacy policy first, then the live portal shell, ticket card, and support flow.
           </p>
         </div>
 
         <div className="preview-admin-actions">
-          <button className={`preview-admin-chip ${screen === "home" ? "is-active" : ""}`} onClick={goHome} type="button">
-            home
+          <button
+            className={`preview-admin-chip ${showPrivacyModal ? "is-active" : ""}`}
+            onClick={resetPreview}
+            type="button"
+          >
+            privacy gate
           </button>
-          <button className={`preview-admin-chip ${screen === "portal" ? "is-active" : ""}`} onClick={() => setScreen("portal")} type="button">
+          <button
+            className={`preview-admin-chip ${screen === "portal" && !showPrivacyModal ? "is-active" : ""}`}
+            onClick={() => {
+              setScreen("portal");
+              setShowPrivacyModal(false);
+            }}
+            type="button"
+          >
             portal
           </button>
-          <button className="preview-admin-chip" onClick={goHome} type="button">
+          <button
+            className={`preview-admin-chip ${screen === "activity" ? "is-active" : ""}`}
+            onClick={() => setScreen("activity")}
+            type="button"
+          >
+            activity
+          </button>
+          <button
+            className={`preview-admin-chip ${screen === "support" ? "is-active" : ""}`}
+            onClick={() => setScreen("support")}
+            type="button"
+          >
+            support
+          </button>
+          <button
+            className={`preview-admin-chip ${screen === "survey" ? "is-active" : ""}`}
+            onClick={() => setScreen("survey")}
+            type="button"
+          >
+            survey
+          </button>
+          <button className="preview-admin-chip" onClick={resetPreview} type="button">
             reset
           </button>
           <Link className="preview-admin-chip is-link" href="/dashboard">
@@ -677,7 +1200,6 @@ export default function PortalPreviewPage() {
 
       <section className="preview-stage-frame">{liveScreen}</section>
 
-      {showThingsToKnow ? <ThingsToKnowModal onClose={() => setShowThingsToKnow(false)} /> : null}
       {showPrivacyModal ? <PrivacyModal onClose={() => setShowPrivacyModal(false)} /> : null}
 
       <style jsx global>{`
@@ -957,6 +1479,7 @@ export default function PortalPreviewPage() {
         }
 
         .preview-login-field input,
+        .preview-login-field-input,
         .preview-chat-field input,
         .preview-rsvp-select {
           width: 100%;
@@ -970,11 +1493,13 @@ export default function PortalPreviewPage() {
         }
 
         .preview-login-field input::placeholder,
+        .preview-login-field-input::placeholder,
         .preview-chat-field input::placeholder {
           color: rgba(244, 255, 248, 0.44);
         }
 
         .preview-login-field input:focus,
+        .preview-login-field-input:focus,
         .preview-chat-field input:focus,
         .preview-rsvp-select:focus {
           outline: 2px solid rgba(245, 231, 197, 0.88);
@@ -1012,6 +1537,12 @@ export default function PortalPreviewPage() {
         .preview-support-shell {
           display: grid;
           gap: 16px;
+        }
+
+        .preview-activity-shell,
+        .preview-survey-shell,
+        .preview-survey-done-shell {
+          gap: 18px;
         }
 
         .preview-portal-header,
@@ -1092,6 +1623,326 @@ export default function PortalPreviewPage() {
           display: grid;
           grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 10px;
+        }
+
+        .preview-activity-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 10px;
+        }
+
+        .preview-activity-card {
+          display: grid;
+          gap: 8px;
+          padding: 14px;
+          border-radius: 18px;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          background:
+            linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)),
+            linear-gradient(180deg, rgba(5, 9, 12, 0.92), rgba(4, 7, 10, 0.82));
+        }
+
+        .preview-activity-card p {
+          margin: 0;
+          color: rgba(244, 255, 248, 0.72);
+          line-height: 1.45;
+          font-size: 0.85rem;
+        }
+
+        .activity-hub-disclosure {
+          margin: 0;
+          padding: 0;
+          border-radius: 24px;
+          overflow: hidden;
+        }
+
+        .portal-things-trigger {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          width: 100%;
+          padding: 16px;
+          border: 0;
+          background: rgba(255, 255, 255, 0.06);
+          color: #f5f7f6;
+          cursor: pointer;
+          list-style: none;
+          text-transform: uppercase;
+          letter-spacing: 0.16em;
+          font: inherit;
+        }
+
+        .portal-things-trigger::-webkit-details-marker {
+          display: none;
+        }
+
+        .portal-things-trigger-lock {
+          color: rgba(245, 231, 197, 0.82);
+          font-size: 1rem;
+        }
+
+        .activity-hub-disclosure-panel {
+          padding: 0 16px 16px;
+          background:
+            linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)),
+            linear-gradient(180deg, rgba(5, 9, 12, 0.92), rgba(4, 7, 10, 0.82));
+        }
+
+        .activity-hub-card-copy {
+          display: grid;
+          gap: 8px;
+        }
+
+        .activity-hub-card-copy p {
+          margin: 0;
+          color: rgba(244, 255, 248, 0.72);
+          line-height: 1.45;
+          font-size: 0.88rem;
+        }
+
+        .activity-hub-top-row,
+        .support-top-actions {
+          display: flex;
+          justify-content: flex-start;
+        }
+
+        .activity-hub-back-button,
+        .support-back-button {
+          width: 42px;
+          min-height: 42px;
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.06);
+          color: #f5f7f6;
+          font: inherit;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+        }
+
+        .activity-hub-back-button {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .activity-hub-menu-intro,
+        .activity-hub-menu-footnote,
+        .activity-hub-venue-copy,
+        .activity-hub-help-copy {
+          margin: 0;
+          color: rgba(244, 255, 248, 0.72);
+          line-height: 1.5;
+        }
+
+        .activity-hub-menu-grid {
+          display: grid;
+          gap: 10px;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .activity-hub-food-card {
+          display: grid;
+          gap: 10px;
+          padding: 12px;
+          border-radius: 18px;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          background: rgba(255, 255, 255, 0.04);
+        }
+
+        .activity-hub-food-photo-wrap {
+          display: flex;
+          align-items: center;
+          justify-content: flex-start;
+        }
+
+        .activity-hub-food-thumb {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 46px;
+          height: 46px;
+          border-radius: 14px;
+          background: linear-gradient(135deg, rgba(245, 231, 197, 0.18), rgba(255, 255, 255, 0.06));
+          color: #fff4cf;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          font-size: 0.72rem;
+        }
+
+        .activity-hub-food-thumb.is-accent {
+          background: linear-gradient(135deg, rgba(126, 70, 224, 0.28), rgba(245, 231, 197, 0.18));
+        }
+
+        .activity-hub-food-copy {
+          display: grid;
+          gap: 4px;
+        }
+
+        .activity-hub-food-name {
+          font-size: 0.92rem;
+          line-height: 1.2;
+        }
+
+        .activity-hub-food-copy p {
+          margin: 0;
+          color: rgba(244, 255, 248, 0.72);
+          line-height: 1.45;
+          font-size: 0.82rem;
+        }
+
+        .activity-hub-venue-map {
+          overflow: hidden;
+          border-radius: 18px;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          min-height: 180px;
+          background: rgba(255, 255, 255, 0.04);
+        }
+
+        .activity-hub-map-iframe {
+          display: block;
+          width: 100%;
+          min-height: 180px;
+          border: 0;
+        }
+
+        .activity-hub-inline-link {
+          color: #fff4cf;
+          text-decoration: underline;
+          text-underline-offset: 2px;
+        }
+
+        .activity-hub-datetime {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 10px;
+          margin: 0;
+        }
+
+        .activity-hub-datetime div {
+          display: grid;
+          gap: 4px;
+          padding: 12px;
+          border-radius: 16px;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          background: rgba(255, 255, 255, 0.04);
+        }
+
+        .activity-hub-datetime dt {
+          color: rgba(245, 231, 197, 0.82);
+          text-transform: uppercase;
+          letter-spacing: 0.16em;
+          font-size: 0.64rem;
+        }
+
+        .activity-hub-datetime dd {
+          margin: 0;
+          font-size: 0.92rem;
+        }
+
+        .activity-hub-help-needed {
+          display: grid;
+          gap: 12px;
+        }
+
+        .activity-hub-help-image-wrap {
+          overflow: hidden;
+          border-radius: 18px;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          aspect-ratio: 16 / 9;
+          background: rgba(255, 255, 255, 0.04);
+        }
+
+        .activity-hub-help-image {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .activity-hub-volunteer-link {
+          text-decoration: none;
+        }
+
+        .preview-support-screen {
+          padding: clamp(20px, 4vw, 28px) 16px 18px;
+          background:
+            radial-gradient(circle at top, rgba(245, 231, 197, 0.1), transparent 30%),
+            linear-gradient(180deg, #05090d 0%, #0a1117 100%);
+        }
+
+        .preview-support-shell {
+          display: grid;
+          gap: 16px;
+        }
+
+        .preview-support-header {
+          display: grid;
+          gap: 8px;
+          text-align: center;
+          padding-top: 4px;
+        }
+
+        .support-live-panel {
+          display: grid;
+          gap: 12px;
+          padding: 0;
+        }
+
+        .chatbot-messages {
+          display: grid;
+          gap: 12px;
+          max-height: 58vh;
+          overflow: auto;
+          padding-right: 2px;
+        }
+
+        .support-quick-replies {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+
+        .support-quick-reply {
+          min-height: 42px;
+          padding: 0.7rem 0.85rem;
+          border-radius: 16px;
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          background: rgba(255, 255, 255, 0.05);
+          color: #f5f7f6;
+          text-transform: none;
+          letter-spacing: 0.04em;
+          font-size: 0.76rem;
+          text-align: left;
+        }
+
+        .support-quick-reply:disabled {
+          opacity: 0.55;
+        }
+
+        .chatbot-form {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) 68px;
+          gap: 10px;
+          align-items: stretch;
+        }
+
+        .chatbot-send-button {
+          font-size: 1rem;
+          letter-spacing: 0.08em;
+        }
+
+        .support-bottom-actions {
+          display: grid;
+          gap: 10px;
+        }
+
+        .preview-chat-thread {
+          display: grid;
+          gap: 12px;
+        }
+
+        .preview-chat-bubble {
+          max-width: 100%;
         }
 
         .preview-portal-summary > div,
@@ -1239,6 +2090,27 @@ export default function PortalPreviewPage() {
         .preview-action-stack {
           display: grid;
           gap: 10px;
+        }
+
+        .preview-survey-form {
+          display: grid;
+          gap: 14px;
+          text-align: left;
+        }
+
+        .preview-survey-question {
+          display: grid;
+          gap: 8px;
+        }
+
+        .preview-survey-label {
+          color: rgba(244, 255, 248, 0.78);
+          line-height: 1.45;
+          font-size: 0.9rem;
+        }
+
+        .preview-action-button.is-disabled {
+          opacity: 0.54;
         }
 
         .preview-action-button.is-secondary {
