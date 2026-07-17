@@ -223,14 +223,18 @@ function matchesUser(user, query) {
   if (!value) return true;
 
   const fields = [
+    user.id,
     user.firstName,
     user.lastName,
     user.phoneNumber,
+    user.barcode,
     user.attendance,
     user.rsvp,
     user.checkedInAt,
     user.registeredAt,
+    user.enteredAt,
     user.createdAt,
+    user.sessionId,
     user.survey?.howDidYouKnow,
     user.survey?.referredBy,
     user.survey?.dietaryRestrictions,
@@ -299,7 +303,10 @@ function formatActivityDetail(activity) {
   const parts = [];
   const pathname = String(activity?.pathname ?? "").trim();
   const phoneNumber = String(activity?.phoneNumber ?? "").trim();
+  const inviteToken = String(activity?.inviteToken ?? "").trim();
   const sessionId = String(activity?.sessionId ?? "").trim();
+  const method = String(activity?.method ?? "").trim();
+  const reason = String(activity?.reason ?? "").trim();
 
   if (pathname) {
     parts.push(pathname);
@@ -313,7 +320,35 @@ function formatActivityDetail(activity) {
     parts.push(sessionId.slice(0, 8));
   }
 
+  if (method) {
+    parts.push(method);
+  }
+
+  if (reason) {
+    parts.push(reason);
+  }
+
+  if (inviteToken) {
+    parts.push(inviteToken);
+  }
+
   return parts.join(" · ");
+}
+
+function formatActivitySummaryValue(activity) {
+  return formatValue(activity?.createdAt);
+}
+
+function getFirstContactValue(user) {
+  return user?.enteredAt ?? user?.registeredAt ?? user?.createdAt ?? "";
+}
+
+function getFirstActivityValue(logs) {
+  if (!Array.isArray(logs) || !logs.length) {
+    return "";
+  }
+
+  return logs[logs.length - 1]?.createdAt ?? "";
 }
 
 function ActivityLogModal({ error, isLoading, logs, user, onClose }) {
@@ -327,6 +362,12 @@ function ActivityLogModal({ error, isLoading, logs, user, onClose }) {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
+
+  const firstContactValue = getFirstContactValue(user);
+  const firstActivityValue = getFirstActivityValue(logs);
+  const latestSessionId = String(logs[0]?.sessionId ?? "").trim();
+  const inviteToken = String(user?.id ?? "").trim() || "Unavailable";
+  const phoneNumber = String(user?.phoneNumber ?? "").trim() || "Unavailable";
 
   return (
     <div className="activity-log-backdrop" role="presentation" onClick={onClose}>
@@ -348,6 +389,29 @@ function ActivityLogModal({ error, isLoading, logs, user, onClose }) {
           </button>
         </div>
 
+        <dl className="activity-log-summary">
+          <div>
+            <dt>First contact</dt>
+            <dd>{formatValue(firstContactValue)}</dd>
+          </div>
+          <div>
+            <dt>First activity</dt>
+            <dd>{formatValue(firstActivityValue)}</dd>
+          </div>
+          <div>
+            <dt>Phone</dt>
+            <dd>{phoneNumber}</dd>
+          </div>
+          <div>
+            <dt>Invite token</dt>
+            <dd>{inviteToken}</dd>
+          </div>
+          <div>
+            <dt>Session</dt>
+            <dd>{latestSessionId ? latestSessionId.slice(0, 8) : "Unavailable"}</dd>
+          </div>
+        </dl>
+
         <div className="activity-log-body">
           {isLoading ? (
             <p className="activity-log-empty">Loading logs...</p>
@@ -358,7 +422,7 @@ function ActivityLogModal({ error, isLoading, logs, user, onClose }) {
               <article className="activity-log-item" key={activity.id}>
                 <div className="activity-log-item-head">
                   <strong>{formatActivityLabel(activity)}</strong>
-                  <time>{formatValue(activity.createdAt)}</time>
+                  <time>{formatActivitySummaryValue(activity)}</time>
                 </div>
                 <p className="activity-log-item-detail">
                   {formatActivityDetail(activity) || "No extra details."}

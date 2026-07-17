@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useCallback } from "react";
-import { getStoredAdminRole, getStoredAdminSessionId } from "../lib/admin-api";
+import {
+  fetchAdminActivityLogs,
+  getStoredAdminRole,
+  getStoredAdminSessionId,
+} from "../lib/admin-api";
 
 const controlBaseUrl =
   process.env.NEXT_PUBLIC_CONTROL_URL ?? "https://fifa-control.onrender.com";
@@ -36,7 +40,7 @@ export function AdminDashboard() {
     setError("");
 
     try {
-      const [invitesResponse, settingsResponse, activityResponse] =
+      const [invitesResponse, settingsResponse, activityData] =
         await Promise.all([
         fetch(`${controlBaseUrl}/api/invites`, {
           headers: sessionId ? { "x-admin-session-id": sessionId } : {},
@@ -44,14 +48,11 @@ export function AdminDashboard() {
         fetch(`${controlBaseUrl}/api/settings`, {
           headers: sessionId ? { "x-admin-session-id": sessionId } : {},
         }),
-        fetch(`${controlBaseUrl}/api/activity`, {
-          headers: sessionId ? { "x-admin-session-id": sessionId } : {},
-        }),
+        fetchAdminActivityLogs(),
       ]);
 
       const inviteData = await invitesResponse.json();
       const settingsData = await settingsResponse.json();
-      const activityData = await activityResponse.json();
 
       if (!invitesResponse.ok || !inviteData.ok) {
         throw new Error(inviteData.error ?? "Unable to load invites.");
@@ -61,12 +62,8 @@ export function AdminDashboard() {
         throw new Error(settingsData.error ?? "Unable to load settings.");
       }
 
-      if (!activityResponse.ok || !activityData.ok) {
-        throw new Error(activityData.error ?? "Unable to load activity.");
-      }
-
       setInvites(inviteData.invites ?? []);
-      setActivities(activityData.activities ?? []);
+      setActivities(activityData ?? []);
       setInviteCount(inviteData.inviteCount ?? 0);
       setIsFull(Boolean(inviteData.isFull));
       setCapacity(
